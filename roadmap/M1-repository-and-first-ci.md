@@ -20,4 +20,6 @@ metadata:
 - `v0.1.0` exists as a GitHub release with the built files attached.
 - The supported-versions line in `SECURITY.md` names the released version, and `status/numbers.md` records the release workflow's first run.
 
-**Waits for.** The maintainer's go-ahead to tag and to publish.
+**Prepared** (2026-11-07, local branch `release/0.1.0`, not pushed): steps 1 to 5 of `RELEASING.md`, and a README section on using the package, added after a fresh install failed without it.
+
+**Waits for.** The maintainer's go-ahead to push, merge, tag and publish. PyPI is a separate decision (see `status/open.md`).

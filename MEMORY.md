@@ -23,4 +23,5 @@ Keep it current. Fix or delete an entry as soon as it is wrong, and check a clai
 - [Name and package](memory/name-and-package.md): read before renaming, publishing, or when the name is questioned.
 - [Scope and why version handling comes early](memory/scope-and-version-compatibility.md): read before adding a new kind of thing to test, a new direct Home Assistant import, or before renaming.
 - [Where the longer-term thinking lives](memory/where-longer-term-thinking-lives.md): read before adding an idea or a roadmap item.
+- [Making the project known](memory/adoption-and-outreach.md): read before posting anywhere, writing release notes or when asked who this is for.
 - [Prior art: no general tool found](memory/prior-art-no-general-tool.md): read only if the claim "nothing like this exists" matters for a decision.

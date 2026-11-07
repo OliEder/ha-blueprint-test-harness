@@ -9,7 +9,7 @@ metadata:
 
 The starting point was the blueprint test setup of MrCodeLabs for a go-eCharger PV blueprint (Apache-2.0): a harness that runs the blueprint's templates and actions against synthetic states in a Jinja sandbox, with scenario tests. This project took the idea and several first scenarios, not the code, and runs the blueprint in a real Home Assistant instead. The README credits him.
 
-Searched 2026-11-07 on the web and in GitHub code. Closest others: Home Assistant core's `tests/components/automation/test_blueprint.py` and `template/test_blueprint.py` (the pattern this project follows, Apache-2.0); `ChuckBuilds/ha-blueprints` (standalone scripts that start a headless Home Assistant per project; no licence, so not reused); an open feature request for a YAML test framework on the Home Assistant community forum (since 2024-02, no answer from the team); `ha-testcontainer` (visual tests, not automation logic). The searches cannot prove absence.
+Searched 2026-11-07 on the web and in GitHub code. Closest others: Home Assistant core's `tests/components/automation/test_blueprint.py` and `template/test_blueprint.py` (the pattern this project follows, Apache-2.0); `ChuckBuilds/ha-blueprints` (standalone scripts that start a headless Home Assistant per project; no licence, so not reused); two open feature requests on the Home Assistant community forum (a YAML test framework and a test suite for blueprints, both since 2024-02; details in [[adoption-and-outreach]]); `ha-testcontainer` (visual tests, not automation logic). The searches cannot prove absence.
 
 **Why:** it answers "does this already exist, and who did the groundwork?" without repeating the search.
 

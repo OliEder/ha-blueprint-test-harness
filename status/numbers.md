@@ -11,7 +11,7 @@ Write a number here with its date and command, and nowhere else without both.
 
 | What | Value | Date | How to reproduce |
 | --- | --- | --- | --- |
-| Tests passing | 168 pass: 22 in `test_daylight_heartbeat.py`, 30 in `test_memory.py`, 12 in `test_motion_light.py`, 24 in `test_mutate.py`, 25 in `test_release.py`, 41 in `test_roadmap.py`, 14 in `test_status.py` | 2026-11-07 | `.venv/bin/python -m pytest -q` |
+| Tests passing | 171 pass: 22 in `test_daylight_heartbeat.py`, 33 in `test_memory.py`, 12 in `test_motion_light.py`, 24 in `test_mutate.py`, 25 in `test_release.py`, 41 in `test_roadmap.py`, 14 in `test_status.py` | 2026-11-07 | `.venv/bin/python -m pytest -q` |
 | `motion_light.yaml` mutants killed | 18 of 18 (the first run killed 16; the two survivors exposed a test gap that was then closed) | 2026-11-07 | the mutation command in `AGENTS.md` |
 | `daylight_heartbeat.yaml` mutants killed | 27 mutants: 23 killed, 0 survived, 4 invalid, score 100 % (the first run killed 21 of 23; the two survivors exposed a test gap that was then closed) | 2026-11-07 | `mutate` on that blueprint with `tests/test_daylight_heartbeat.py` |
 | Home Assistant, test package, Python | 2026.10.4, `pytest-homeassistant-custom-component==0.13.375`, 3.14 | 2026-11-07 | `requirements-dev.txt` |
