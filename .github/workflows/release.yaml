@@ -3,10 +3,15 @@ name: Release
 # Runs when a version tag such as v0.1.0 is pushed. It checks the tag against the package version and the
 # changelog, runs the tests, builds the package, and creates a DRAFT GitHub release with the built files and
 # the changelog section as notes. A person reviews the draft and publishes it. See RELEASING.md.
+#
+# It can also be started by hand (Actions, Release, Run workflow) as a DRY RUN: the same checks, tests, build and
+# upload and download of the files, but no tag is needed and no release is created. Release tags cannot be moved or
+# deleted, so run the dry run on the commit that is going to be tagged, before the tag is pushed.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,7 +29,12 @@ jobs:
           cache-dependency-path: requirements-dev.txt
 
       - name: The tag matches the version and the changelog
+        if: github.ref_type == 'tag'
         run: python tools/release_info.py check-tag "$GITHUB_REF_NAME"
+
+      - name: Dry run, the version can be released and the changelog has its section
+        if: github.ref_type != 'tag'
+        run: python tools/release_info.py check-tag "v$(python tools/release_info.py version)"
 
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
@@ -69,7 +79,16 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Dry run, what would be released
+        if: github.ref_type != 'tag'
+        run: |
+          version="$(python tools/release_info.py version)"
+          ls -l dist/
+          python tools/release_info.py notes "$version"
+          echo "Dry run: no release was created."
+
       - name: Create the draft release
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
