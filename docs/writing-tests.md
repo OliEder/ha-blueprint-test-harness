@@ -91,6 +91,7 @@ await blueprint_env.advance(1)         # now the light goes off
 
 Two things to know about `advance()` (both measured on 2026-11-07 with Home Assistant 2026.10.4):
 
+- **Templates follow the frozen clock.** `now()` and `utcnow()` in a template move with `advance()`, so a time limit written in a template ("stop after 15 seconds") works in tests. This is shown by the tests of a blueprint that ends a loop at such a limit, not by a test of its own here.
 - **One call fires a repeating timer once.** With a `time_pattern` trigger every 5 seconds, `advance(30)` gave one run, not six; six calls of `advance(5)` gave six more. Advance in steps of the interval when a blueprint does something every few seconds, and look at `calls` in between.
 - **It is not exact below one second.** A timer can fire up to about half a second early: a `delay` of 1 second had fired after two calls of `advance(0.3)`. Use whole-second delays in your tests and stay at least half a second away from the boundary. The cause was not looked into; it is probably Home Assistant's own test time helper.
 
@@ -112,6 +113,31 @@ async def press(env, event_type):
 A state trigger fires on a *changed* state, so writing the same timestamp twice is one press, not two. Start the entity in `"unknown"`, like a real one after a restart, and check that the first press still works. The blueprint [`examples/event_entity_light.yaml`](examples/event_entity_light.yaml) and its tests [`examples/test_event_entity_light.py`](examples/test_event_entity_light.py) show the whole pattern, including a trigger that wrongly excluded `unknown` and so lost the first press after a restart: the test for the first press found it.
 
 For a press that is held (`hold_*` followed later by `release_*`), send the first event, call `advance(...)`, then send the release.
+
+### Read the log: problems that do not fail a test
+
+Home Assistant logs a failing template or action of an automation as a warning or error and carries on. A test can therefore pass while the blueprint is broken. Read the log to catch that:
+
+```python
+# The warnings and errors Home Assistant logged for automations during the test itself.
+def problems(caplog):
+    return [record.getMessage() for record in caplog.get_records("call")
+            if record.name.startswith("homeassistant.components.automation")
+            and record.levelname in ("WARNING", "ERROR", "CRITICAL")]
+```
+
+Use `caplog.get_records("call")`, not `caplog.records`: in the teardown of a fixture the second one is empty, so an automatic check written as a fixture that used it would check nothing. To check every test of a project, build an `autouse` fixture on this function that fails a test with problems, and give a marker (for example `allow_warnings`) to the few tests that expect one (a run limit, a blueprint that must not load). The examples in [`examples/test_logged_problems.py`](examples/test_logged_problems.py) show a forgotten service that appears only in the log, and the same test with the service listed.
+
+### Something happens while a service call is running
+
+An effect runs inside the mocked service call, so it can change a state, or fire an event, at exactly that moment. This is how to test a race, for example a button released while a light is still being set:
+
+```python
+async def effect(hass, call):
+    hass.states.async_set("event.hall_button_action", stamp, {"event_type": "release_left_down"})
+```
+
+Fire it only once (keep a flag) if the service is called repeatedly. The example [`examples/test_logged_problems.py`](examples/test_logged_problems.py) fires a second press from inside the call. Mind that a state trigger or `wait_template` only sees the state as it is when it looks: two changes inside one call are seen as the last of them.
 
 ### Assert that nothing happened
 

@@ -20,6 +20,8 @@ Passing tests tell you the blueprint does what the tests check. They do not tell
 | `--fail-under PCT` | Exit with status 1 if the score is below `PCT` (0 to 100). For CI. |
 | `--workdir DIR` | Write the broken copies to `DIR` and keep them (default: a temporary folder that is removed). |
 
+Do not edit your tests or the blueprint while it runs: each mutant is tested with the files as they are on disk at that moment, so a run can mix old and new versions.
+
 Before it breaks anything the tool checks that your tests pass on the original and on an unchanged copy that it read and wrote back itself. If either fails it stops and says so: fix the tests first.
 
 The tool runs your tests many times (once per mutant) and prints the result only at the end, so a run takes minutes without any output: with 73 mutants and 56 tests about 3 minutes (measured by a test project on 2026-11-07). Run it in the background in CI. The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
