@@ -53,6 +53,7 @@ This is what `.github/workflows/ci.yaml` runs. Set-up: `uv venv --python 3.14 .v
 | `tests/test_motion_light.py` | Home Assistant's own `motion_light.yaml`, the reference user of the harness |
 | `tests/test_daylight_heartbeat.py`, `tests/blueprints/daylight_heartbeat.yaml` | Second user: a small original fixture blueprint with a time pattern, sun conditions and a `choose` block |
 | `tests/test_mutate.py` | Tests of the mutation tool itself |
+| `docs/`, `docs/examples/` | The user documentation, and the runnable examples it quotes (blueprint plus tests, run with the rest of the suite) |
 | `tests/test_memory.py`, `tests/test_status.py`, `tests/test_roadmap.py`, `tests/test_release.py` | Check that each index and its files agree, that files they name exist, and that version, changelog and public API are consistent |
 | `MEMORY.md`, `memory/` | The memory: an index and one short file per entry |
 | `STATUS.md`, `status/` | The status: an index with the map by task, and files for numbers, open items and commands |
@@ -92,7 +93,7 @@ One home for each kind of information. Other files link to it and do not copy it
 | An idea that is not accepted, or a problem a harness could prevent | `VISION.md` | it comes up | a dated line: what happened, not what is assumed |
 | What changed for users, per version | `CHANGELOG.md` | any change a user can see (API, command line, behaviour, supported versions) | one line under `Unreleased` in the right group |
 | How versions and releases work | `RELEASING.md` | the policy or the public API changes | keep the API list in step with `__all__` (`tests/test_release.py` checks it) |
-| How to use the tool | `README.md` | the API, a command or the mutation table changes | |
+| How to use the tool | `docs/` (one page per task; examples in `docs/examples/`, run by the test suite) | the API, a command, an error message or the mutation table changes | update the page, run `pytest` (it runs the examples); the README only summarises and links |
 | What running the tool executes | `SECURITY.md` | that changes | |
 
 Rules:

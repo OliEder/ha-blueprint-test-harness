@@ -1,0 +1,37 @@
+blueprint:
+  name: Toggle a light on an event (documentation example)
+  description: >
+    Used in the documentation of ha-blueprint-test-harness. When the chosen event is fired the
+    light is switched off if it is on, and on otherwise.
+  domain: automation
+  input:
+    button_event:
+      name: Event type
+      description: The event that acts as the button press.
+      default: button_pressed
+      selector:
+        text:
+    light:
+      name: Light
+      selector:
+        entity:
+          domain: light
+
+triggers:
+  - trigger: event
+    event_type: !input button_event
+
+actions:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input light
+            state: "on"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: !input light
+    default:
+      - action: light.turn_on
+        target:
+          entity_id: !input light
