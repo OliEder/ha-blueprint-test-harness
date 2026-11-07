@@ -72,7 +72,7 @@ ha-blueprint-test-harness @ https://github.com/OliEder/ha-blueprint-test-harness
 pytest-homeassistant-custom-component==0.13.375
 ```
 
-`0.13.375` is the version this harness was tested with (Home Assistant 2026.10.4). The wheel URL above is the form a release asset will have; it works only after release 0.1.0 is published (not yet, on 2026-11-07). Until then use the `git+https://...` source from [Getting started](getting-started.md#2-install).
+`0.13.375` is the version this harness was tested with (Home Assistant 2026.10.4). The wheel URL above is the release asset of 0.1.0 (published on 2026-11-07; the line was checked to install it into a fresh environment). For a newer version change the version in the URL. To follow the main branch use the `git+https://...` source from [Getting started](getting-started.md#2-install).
 
 When you move to a newer test package, run your tests and the mutation tool again. The harness uses Home Assistant internals in several places, so a new Home Assistant version can break it; if it does, [open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues).
 

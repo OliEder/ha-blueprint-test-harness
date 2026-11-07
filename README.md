@@ -18,7 +18,7 @@ async def test_light_turns_off_after_the_wait(blueprint_env):
 
 Everything needed to use it is in [`docs/`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/index.md): [getting started](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/getting-started.md) (install, two configuration files, a first test), [configuring your project](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/configuring-your-project.md) (layout, pinned versions, GitHub Actions), [writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md) (the API and the common patterns), [mutation testing](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/mutation-testing.md) and [troubleshooting](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/troubleshooting.md).
 
-Needs Python 3.14. Install a release wheel from the [Releases page](https://github.com/OliEder/ha-blueprint-test-harness/releases) or, until then, `pip install "git+https://github.com/OliEder/ha-blueprint-test-harness"`. It is not on PyPI yet.
+Needs Python 3.14. Install the wheel from the [latest release](https://github.com/OliEder/ha-blueprint-test-harness/releases/latest), or follow the main branch with `pip install "git+https://github.com/OliEder/ha-blueprint-test-harness"`. It is not on PyPI yet.
 
 ## What is real, what is not
 

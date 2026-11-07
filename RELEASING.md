@@ -62,7 +62,7 @@ A maintainer makes a release. An agent may prepare the release commit and draft 
 3. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, add the `Tested with:` line (the numbers are in `status/numbers.md`), and put a new, empty `## [Unreleased]` above it.
 4. Check locally: run the tests, `python tools/release_info.py notes X.Y.Z` (shows the release notes), and `uv build` (builds the package).
 5. Commit as `Release X.Y.Z` and merge it into `main`. Then run the release workflow by hand on `main` (Actions, Release, Run workflow): a dry run that does everything except create the release and needs no tag. A tag cannot be moved or deleted, so fix what the dry run shows before you tag.
-6. Tag that commit `vX.Y.Z` and push the tag.
+6. Tag that commit `vX.Y.Z` and push the tag with `git push origin vX.Y.Z`. Do not create a release in the GitHub web interface: the workflow creates the draft, and a release made by hand next to it gives two releases for one tag (this happened with 0.1.0; see `memory/first-release-lessons.md`).
 7. `.github/workflows/release.yaml` runs: it checks that the tag equals the version and that the changelog has the section, runs the tests, builds the source archive and the wheel, and creates a **draft** GitHub release with both files and the changelog section as notes. Review the draft and publish it.
 8. Update the line about supported versions in `SECURITY.md`. Add a line to `roadmap/log/`, and update `status/numbers.md` and, if a milestone is done, its row in `ROADMAP.md`.
 
