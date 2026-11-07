@@ -1,8 +1,8 @@
 # ha-blueprint-test-harness roadmap
 
-**Stage: prototype** · next: a repository with history, a first CI run on Linux, then a compatibility layer so that new Home Assistant versions touch one place
+**Stage: first release (0.1.0) is out** · next: a broader set of reference blueprints, then a compatibility layer so that new Home Assistant versions touch one place
 
-> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** split into an index table, milestone files and a monthly log
+> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** release 0.1.0 done, milestone M1 closed
 
 ## Direction
 
@@ -24,14 +24,13 @@ Two things have to hold the whole way, and the milestones below are ordered arou
 - `BlueprintEnv`: load a blueprint with `use_blueprint`, set initial states, mock any service, set up real components (for example `sun`), freeze and advance the clock, set states, fire events, read the recorded calls.
 - Mutation tool: structural changes (drop an item, drop `from`/`to`/`for`/..., swap `from` and `to`, swap `turn_on`/`turn_off`, mode, delays, booleans, input defaults) and text changes inside Jinja templates (comparisons, `and`/`or`, `not`, `true`/`false`). Outcomes killed, survived, invalid, error; a score; `--fail-under`.
 - Two reference blueprints: Home Assistant's own `motion_light.yaml` and a small original fixture for time patterns and sun conditions.
-- A CI workflow, written and checked locally.
+- CI on every push and pull request (tests and mutation runs on Linux), and a release workflow that built and published 0.1.0 (it can also be started by hand as a dry run).
 
 ### Not yet
 
-- The release workflow has not run yet, and there is no release.
 - Automation blueprints only.
 - One Home Assistant version at a time, and the harness uses Home Assistant internals directly, in several places.
-- No branch coverage, no packaging.
+- No branch coverage. Not on PyPI; the wheel is attached to the GitHub release.
 - Few reference blueprints so far, and only the trigger kinds state, time pattern and sun. Numbers: `status/numbers.md`.
 
 ## Milestones
@@ -41,7 +40,7 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | ID | Milestone | State | Detail |
 | --- | --- | --- | --- |
 | M0 | Prototype: environment, mutation tool, CI file | done | — |
-| M1 | Repository, first green CI run on Linux, first release (0.1.0) | active | [M1](roadmap/M1-repository-and-first-ci.md) |
+| M1 | Repository, first green CI run on Linux, first release (0.1.0) | done | — |
 | M2 | **Broader reference set.** Original fixture blueprints for event, numeric-state and zone triggers, `choose` with `default`, `repeat` and `wait_template`, each with tests and a mutation score | open | [M2](roadmap/M2-broaden-reference-set.md) |
 | M3 | **Compatibility layer.** Every Home Assistant internal the harness uses sits behind one module, with canary tests that name what changed in a new version | open | [M3](roadmap/M3-compatibility-layer.md) |
 | M4 | **Several Home Assistant generations.** A CI matrix over the blueprint's `min_version`, recent monthly releases and the current one; version markers; a weekly pin proposal | open | [M4](roadmap/M4-several-ha-generations.md) |

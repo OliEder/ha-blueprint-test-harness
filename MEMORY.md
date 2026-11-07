@@ -18,6 +18,10 @@ Keep it current. Fix or delete an entry as soon as it is wrong, and check a clai
 
 - [`last_reported` is a weak age signal](memory/last-reported-weak-age-signal.md): read before writing or reviewing an age check or recommending a limit.
 
+## Releases
+
+- [What the first release taught](memory/first-release-lessons.md): read before tagging, before changing the release workflow, or when a release looks wrong.
+
 ## Scope, naming and structure
 
 - [Name and package](memory/name-and-package.md): read before renaming, publishing, or when the name is questioned.
