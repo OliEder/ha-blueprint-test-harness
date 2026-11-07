@@ -13,6 +13,25 @@ async def test_light_turns_off_after_the_wait(blueprint_env):
     assert [call.name for call in blueprint_env.calls] == ["light.turn_on", "light.turn_off"]
 ```
 
+## Use it in your own project
+
+Needs Python 3.14 and brings in Home Assistant's test package (`pytest-homeassistant-custom-component`) with it.
+
+1. Install the wheel from the [latest release](https://github.com/OliEder/ha-blueprint-test-harness/releases/latest) into a virtual environment: `pip install ha_blueprint_test_harness-<version>-py3-none-any.whl`. It is not on PyPI yet.
+2. Create `pytest.ini`: `asyncio_mode = auto`. Without it every test errors with a pytest-asyncio warning.
+3. Create `conftest.py` that loads the fixture: `pytest_plugins = ["ha_blueprint_test_harness.pytest_plugin"]`. Passing `-p ha_blueprint_test_harness.pytest_plugin` on the command line does not work.
+4. Blueprints with a time pattern, state or sun trigger leave timers armed, and Home Assistant's test setup then fails the test with "Lingering timer after test". Add this to `conftest.py`:
+
+```python
+import pytest
+
+@pytest.fixture
+def expected_lingering_timers() -> bool:
+    return True
+```
+
+Then write tests as in the example above and run `pytest`. The steps were checked on 2026-11-07 with a fresh environment and the wheel built from this repository (Home Assistant 2026.10.4); the example uses Home Assistant's own `motion_light.yaml`, found through `homeassistant.components.automation.__file__`.
+
 ## What is real, what is not
 
 | Real | Not real |
