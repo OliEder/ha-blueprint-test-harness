@@ -1,0 +1,39 @@
+# Status
+
+A short index. Where things are, which files a task needs, and where the current numbers, open items and commands live. Read the map, then open only what your task needs. Last updated 2026-11-07.
+
+## Right now
+
+- Prototype for automation blueprints. A local Git repository without commits or remote; CI has not run on GitHub yet.
+- Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
+- Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
+
+## Project map by task
+
+Read the first column's files, then the rest only if needed.
+
+| Task | Read first | If needed | Not needed |
+| --- | --- | --- | --- |
+| Understand or change the environment | `ha_blueprint_test_harness/env.py` | README "API" and "Settling"; `memory/settle-instead-of-block-till-done.md` | `mutate.py` |
+| Write tests for a blueprint | README, `tests/test_motion_light.py` (the model) | `env.py` `start()` | `test_mutate.py`, `mutate.py` |
+| Judge mutation survivors | README "Mutation testing", `mutate.py` header | `memory/equivalent-mutants.md`, `memory/mutation-outcomes-killed-invalid.md` | `env.py` |
+| Add or change a mutation operator | `mutate.py` (`_walk`, `_dict_sites`, `_template_variants`), `tests/test_mutate.py` | README table | `env.py` |
+| CI | `.github/workflows/ci.yaml` | | |
+| Version, release or changelog | `RELEASING.md`, `CHANGELOG.md` | `pyproject.toml`, `.github/workflows/release.yaml` | |
+| Work on a milestone | `ROADMAP.md` (the table), then the milestone's file in `roadmap/` | the `memory/` entries it names; `roadmap/log/` for the recent past | the other milestone files |
+| Current numbers, open items, commands | the matching file in `status/` | | the other `status/` files |
+| Find a fact or a past decision | `MEMORY.md` (the index; open only the entries that match) | the entries in `memory/` | the rest of `memory/` |
+| Naming, scope, "why not X" | `MEMORY.md`, `ROADMAP.md` | | |
+| Long-term direction, ideas, community input | `VISION.md` | `ROADMAP.md` | |
+| How to write and update these documents | `AGENTS.md`, section "Keeping the documents current" | | |
+| Security questions | `SECURITY.md` | | |
+
+No file is large. Longest: `mutate.py` (about 420 lines), `env.py` (about 200).
+
+## Status files
+
+Decisions are not listed here: they are the rules in `AGENTS.md` and the entries of type decision in `memory/`.
+
+- [Numbers](status/numbers.md): read when you need a test count, a mutation score, a version or the CI state, or before you quote one.
+- [Open items](status/open.md): read when you pick the next piece of work or wonder what something waits for.
+- [Practical](status/practical.md): read when a command, the set-up or a local quirk (editor, shell) is the question.

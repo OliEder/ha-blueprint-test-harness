@@ -1,0 +1,32 @@
+# Security
+
+## What this tool is
+
+A development and test tool. Running it executes things: the tests you give it, the Jinja templates and actions of the blueprints you load, and, in the mutation tool, any command you put after `--`. It is not a service and it listens on no port.
+
+## Supported versions
+
+Only `main`. There are no releases yet. After the first release: the latest release and `main`; a fix is published as the next patch version (see [`RELEASING.md`](RELEASING.md)).
+
+## Reporting a vulnerability
+
+Please do not open a public issue for a security problem.
+
+Use GitHub's private vulnerability reporting: open the repository's **Security** tab and choose **Report a vulnerability**. The project is maintained by one person on a best-effort basis; there is no response-time promise.
+
+Please include the version of this tool and of Home Assistant (`pip show homeassistant`), what you ran and what you expected. Leave out entity IDs, hostnames and tokens from a real installation.
+
+## What you should know before running it
+
+- **Treat blueprints and tests from other people as untrusted code.** Loading a blueprint runs its templates inside Home Assistant's template sandbox, and running tests runs Python. Do not run them with secrets in the environment or outside a throw-away environment.
+- **The mutation tool passes your environment on.** The command after `--` runs with the environment of the caller, minus the tool's own `HA_BLUEPRINT_TEST_HARNESS_*` variables. Secrets in that environment reach the test run.
+- **No connection to a real instance or device.** The harness does not read credentials and does not talk to a Home Assistant instance or to any device. Services listed in `services=` are recorded, never executed. Real components you add with `components=` run for real; review one before adding it if it could open a connection.
+- **Mutants are written to a temporary folder** that is removed afterwards. With `--workdir` they are written there instead and stay.
+
+## In CI
+
+`.github/workflows/ci.yaml` uses `pull_request` (not `pull_request_target`), `permissions: contents: read` and no secrets. Keep it that way: a pull request from a fork runs its own test code in the job.
+
+## Out of scope
+
+Vulnerabilities in Home Assistant itself, in the `pytest-homeassistant-custom-component` package, or in a blueprint you test belong to those projects.

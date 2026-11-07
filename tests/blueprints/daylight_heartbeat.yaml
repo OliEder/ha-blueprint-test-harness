@@ -1,0 +1,78 @@
+blueprint:
+  name: Daylight heartbeat (test fixture)
+  description: >
+    A small blueprint written for the tests of ha-blueprint-test-harness. By day it reports
+    the value of a sensor every 5 seconds; at night it reports zero once every 30 seconds.
+    It only runs while a switch is on, and it skips a daytime report when the sensor value
+    is not a number. It exists to exercise time patterns, sun conditions and a choose block.
+  domain: automation
+  input:
+    value_sensor:
+      name: Value sensor
+      selector:
+        entity:
+          domain: sensor
+    enabled_switch:
+      name: Enabled switch
+      selector:
+        entity:
+          domain: input_boolean
+    multiplier:
+      name: Multiplier
+      description: Factor applied to the sensor value before it is reported.
+      default: 1
+      selector:
+        number:
+          min: 0.001
+          max: 1000
+          step: any
+          mode: box
+
+variables:
+  sensor_entity: !input value_sensor
+  factor: !input multiplier
+  reading: "{{ states(sensor_entity) }}"
+  reading_usable: "{{ is_number(reading) and is_number(factor) and factor | float(0) > 0 }}"
+
+triggers:
+  - trigger: time_pattern
+    seconds: /5
+
+actions:
+  - choose:
+      - alias: By day, with a usable reading
+        conditions:
+          - condition: state
+            entity_id: !input enabled_switch
+            state: "on"
+          - condition: sun
+            after: sunrise
+          - condition: sun
+            before: sunset
+          - condition: template
+            value_template: "{{ reading_usable }}"
+        sequence:
+          - action: test_sink.report
+            data:
+              mode: day
+              value: "{{ (reading | float * factor | float) | round(0) | int }}"
+      - alias: At night, once per half minute
+        conditions:
+          - condition: state
+            entity_id: !input enabled_switch
+            state: "on"
+          - condition: not
+            conditions:
+              - condition: and
+                conditions:
+                  - condition: sun
+                    after: sunrise
+                  - condition: sun
+                    before: sunset
+          - condition: template
+            value_template: "{{ now().second % 30 < 5 }}"
+        sequence:
+          - action: test_sink.report
+            data:
+              mode: night
+              value: 0

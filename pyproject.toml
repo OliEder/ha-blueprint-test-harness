@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ha-blueprint-test-harness"
+dynamic = ["version"]
+description = "Run Home Assistant automation blueprints against simulated states, services and time, and measure how well the tests notice a broken blueprint."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = ["pytest-homeassistant-custom-component", "pyyaml"]
+keywords = ["home-assistant", "blueprint", "testing", "pytest", "mutation-testing"]
+classifiers = [
+    "Framework :: Pytest",
+    "Topic :: Software Development :: Testing",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[tool.setuptools]
+packages = ["ha_blueprint_test_harness"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ha_blueprint_test_harness.__version__" }
