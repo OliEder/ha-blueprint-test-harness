@@ -6,7 +6,7 @@ At the end you have run a test against Home Assistant's own `motion_light` bluep
 
 - **Python 3.14.** The package declares `requires-python >= 3.14`, because the Home Assistant version it is tested with needs it.
 - **macOS or Linux.** Tested on macOS and on Ubuntu (GitHub Actions). Windows: not tried.
-- About 700 MB of disk for the virtual environment (660 MB measured on macOS on 2026-11-07): installing the harness installs Home Assistant's test package and with it Home Assistant itself.
+- About 700 MB of disk for the virtual environment (660 MB measured on macOS on 2026-11-07 with `du -sh .venv`): installing the harness installs Home Assistant's test package and with it Home Assistant itself.
 
 ## 2. Install
 

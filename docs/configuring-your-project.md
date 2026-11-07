@@ -39,14 +39,14 @@ import pytest
 pytest_plugins = ["ha_blueprint_test_harness.pytest_plugin"]
 
 
-# Home Assistant's test setup fails a test that ends with timers still armed. Blueprints with a state,
-# time_pattern or sun trigger always leave some, so tell it that this is expected.
+# Home Assistant's test setup fails a test that ends with timers still armed. Some blueprints leave timers
+# armed (a time_pattern trigger does), so tell it that this is expected.
 @pytest.fixture
 def expected_lingering_timers() -> bool:
     return True
 ```
 
-The fixture `expected_lingering_timers` is only needed for blueprints that leave timers armed (see [Troubleshooting](troubleshooting.md)); it does no harm for the others.
+The fixture `expected_lingering_timers` is only needed for blueprints that leave timers armed, for example with a `time_pattern` trigger (see [Troubleshooting](troubleshooting.md)); it does no harm for the others.
 
 If you already have a `conftest.py`, add the two parts to it. The plugin must be named in `pytest_plugins` there: passing `-p ha_blueprint_test_harness.pytest_plugin` on the command line does not work.
 

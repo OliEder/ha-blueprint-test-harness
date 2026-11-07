@@ -45,9 +45,9 @@ survivors (a test gap or an equivalent change; judge each one):
 | **killed** | A test failed or hung. Your tests noticed the change. Good. |
 | **survived** | Every test passed although the blueprint was broken. A gap in the tests, or a change that does not alter behaviour. |
 | **invalid** | The broken blueprint no longer loads (`BlueprintLoadError`). It says nothing about your tests and is left out of the score. |
-| **error** | The test run itself broke (wrong command, no tests found). Fix the command. |
+| **error** | The tests passed on the original blueprint, but a test run for one mutant exited with a code of 2 or more (pytest itself broke). Rare. A wrong test path or a program that cannot be started does not give this outcome: the tool stops before it breaks anything and exits with 1. |
 
-The **score** is killed / (killed + survived). **Exit codes:** 0 fine; 1 the score is below `--fail-under`, or the tests already fail on the unchanged blueprint; 2 a test run itself broke.
+The **score** is killed / (killed + survived). **Exit codes:** 0 fine; 1 the score is below `--fail-under`, or the tool stopped before it started (the tests already fail on the unchanged blueprint, which includes a wrong test path, or the test command cannot be started); 2 at least one mutant run ended in `error`.
 
 ## Reading a survivor
 
@@ -69,6 +69,8 @@ After it, all 8 mutants are killed (score 100%). The same happened on Home Assis
 
 Write down why you accept such a survivor, for instance in a comment next to the blueprint, and do not set `--fail-under` to a value that this survivor makes impossible.
 
+Make sure the test command runs tests that actually load this blueprint. If it runs unrelated tests, every mutant survives; the tool lists them but, without `--fail-under`, still exits with 0. Use `--fail-under` in CI so that this cannot go unnoticed.
+
 A killed mutant only shows that *some* test failed, not that the test is a good one. A high score is necessary, not sufficient.
 
 ## What gets broken
@@ -76,7 +78,7 @@ A killed mutant only shows that *some* test failed, not that the test is a good 
 | Mutation | What it does |
 | --- | --- |
 | `drop_item` | removes one trigger (if there are several), condition, action, `choose` branch, `then`/`else` step |
-| `drop_key` | removes `from`, `to`, `for`, `above`, `below`, `after`, `before` from a trigger or condition, or `target`/`data` from an action |
+| `drop_key` | removes `from`, `to`, `for`, `above`, `below`, `after`, `before`, `after_offset`, `before_offset` from a trigger or condition, or `target`/`data` from an action |
 | `swap_from_to` | swaps `from` and `to` |
 | `action_swap` | `turn_on` <-> `turn_off`, `lock` <-> `unlock` |
 | `mode` | `restart`/`queued`/`parallel` -> `single`, `single` -> `restart` |

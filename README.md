@@ -1,10 +1,11 @@
 # ha-blueprint-test-harness
 
-Run a Home Assistant **automation blueprint** in-process: load the real YAML with `use_blueprint`, set states, advance a frozen clock, and assert which services it called. Pre-1.0: the API may still change, see [`RELEASING.md`](RELEASING.md). Not an official Home Assistant project.
+Run a Home Assistant **automation blueprint** in-process: load the real YAML with `use_blueprint`, set states, advance a frozen clock, and assert which services it called. Pre-1.0: the API may still change, see [`RELEASING.md`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/RELEASING.md). Not an official Home Assistant project.
 
 ```python
 async def test_light_turns_off_after_the_wait(blueprint_env):
-    await blueprint_env.start("motion_light.yaml",
+    # BLUEPRINT is the path to the blueprint file; a runnable version is in docs/getting-started.md.
+    await blueprint_env.start(BLUEPRINT,
         {"motion_entity": "binary_sensor.motion", "light_target": {"entity_id": "light.hall"}},
         states={"binary_sensor.motion": "off"}, services=["light.turn_on", "light.turn_off"])
     await blueprint_env.set_state("binary_sensor.motion", "on")
@@ -15,7 +16,7 @@ async def test_light_turns_off_after_the_wait(blueprint_env):
 
 ## Documentation
 
-Everything needed to use it is in [`docs/`](docs/index.md): [getting started](docs/getting-started.md) (install, two configuration files, a first test), [configuring your project](docs/configuring-your-project.md) (layout, pinned versions, GitHub Actions), [writing tests](docs/writing-tests.md) (the API and the common patterns), [mutation testing](docs/mutation-testing.md) and [troubleshooting](docs/troubleshooting.md).
+Everything needed to use it is in [`docs/`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/index.md): [getting started](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/getting-started.md) (install, two configuration files, a first test), [configuring your project](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/configuring-your-project.md) (layout, pinned versions, GitHub Actions), [writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md) (the API and the common patterns), [mutation testing](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/mutation-testing.md) and [troubleshooting](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/troubleshooting.md).
 
 Needs Python 3.14. Install a release wheel from the [Releases page](https://github.com/OliEder/ha-blueprint-test-harness/releases) or, until then, `pip install "git+https://github.com/OliEder/ha-blueprint-test-harness"`. It is not on PyPI yet.
 
@@ -30,7 +31,7 @@ Needs Python 3.14. Install a release wheel from the [Releases page](https://gith
 
 A green run says the blueprint logic does what the test describes under these assumptions. It says nothing about a real device.
 
-Only automation blueprints are supported. The API and the patterns are in [Writing tests](docs/writing-tests.md).
+Only automation blueprints are supported. The API and the patterns are in [Writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md).
 
 ## Develop this project
 
@@ -44,7 +45,7 @@ uv pip install --python .venv/bin/python -r requirements-dev.txt
 
 ## CI
 
-`.github/workflows/ci.yaml` runs two jobs on Linux with Python 3.14: `tests` (the project's own tests) and `mutation` (mutation runs on Home Assistant's `motion_light.yaml` and on the fixture `tests/blueprints/daylight_heartbeat.yaml`, each with `--fail-under 100`; survivors go into the job summary). `.github/workflows/release.yaml` builds a release from a version tag; see [`RELEASING.md`](RELEASING.md).
+`.github/workflows/ci.yaml` runs two jobs on Linux with Python 3.14: `tests` (the project's own tests) and `mutation` (mutation runs on Home Assistant's `motion_light.yaml` and on the fixture `tests/blueprints/daylight_heartbeat.yaml`, each with `--fail-under 100`; survivors go into the job summary). `.github/workflows/release.yaml` builds a release from a version tag; see [`RELEASING.md`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/RELEASING.md).
 
 ## Tests
 
@@ -56,7 +57,7 @@ uv pip install --python .venv/bin/python -r requirements-dev.txt
 
 ## Versions and releases
 
-Version numbers, what counts as a breaking change and the release steps are in [`RELEASING.md`](RELEASING.md); what changed in each version is in [`CHANGELOG.md`](CHANGELOG.md).
+Version numbers, what counts as a breaking change and the release steps are in [`RELEASING.md`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/RELEASING.md); what changed in each version is in [`CHANGELOG.md`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/CHANGELOG.md).
 
 ## Mutation testing
 
@@ -66,11 +67,11 @@ Do the tests notice when the blueprint is broken? The tool changes the YAML one 
 python -m ha_blueprint_test_harness.mutate path/to/blueprint.yaml [--timeout S] [--fail-under PCT] -- python -m pytest -q -x tests/test_my_blueprint.py
 ```
 
-A survivor is a test that is missing, or a change that does not alter behaviour. On Home Assistant's `motion_light.yaml` the first run killed 16 of 18 mutants; the two survivors showed that nothing tested a sensor that drops out while the light is on. The outcomes, the operators, reading survivors and CI use are in [Mutation testing](docs/mutation-testing.md).
+A survivor is a test that is missing, or a change that does not alter behaviour. On Home Assistant's `motion_light.yaml` the first run killed 16 of 18 mutants; the two survivors showed that nothing tested a sensor that drops out while the light is on. The outcomes, the operators, reading survivors and CI use are in [Mutation testing](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/mutation-testing.md).
 
 ## License
 
-Apache License 2.0, see [`LICENSE`](LICENSE).
+Apache License 2.0, see [`LICENSE`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/LICENSE).
 
 ## Prior work and credits
 

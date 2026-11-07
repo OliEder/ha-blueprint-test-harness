@@ -37,7 +37,7 @@ await blueprint_env.start(
 | `when` | A timezone-aware `datetime` to move the clock to before anything runs, for example `dt.datetime(2026, 6, 21, 20, 0, tzinfo=dt.UTC)`. |
 | `alias` | The automation's name. Rarely needed. |
 
-If the blueprint does not turn into a working automation (a missing required input, a typo in the YAML, an unknown input), `start()` raises **`BlueprintLoadError`**. The reason is in the log that pytest prints with the failure, for example `Failed to generate automation from blueprint: Missing input light`.
+If the blueprint does not turn into a working automation (a missing required input, invalid YAML), `start()` raises **`BlueprintLoadError`**. The reason is in the log that pytest prints with the failure, for example `Failed to generate automation from blueprint: Missing input light`.
 
 ## Acting on the blueprint
 
@@ -131,6 +131,7 @@ A green test says that the blueprint's logic does what the test describes, under
 ## Things that surprise people
 
 - **Always `await` the calls.** `set_state`, `fire_event`, `advance` and `settle` are coroutines; without `await` nothing happens and the test passes for the wrong reason.
+- **A misspelled optional input is ignored.** `start()` does not complain about an input name the blueprint does not have, so the test runs with the default and can pass for the wrong reason. Check input names against the blueprint's `input:` section.
 - **A service you forgot to list fails silently.** The action logs an error, `calls` stays empty, and a test that asserts `calls == []` passes for the wrong reason. If a test that should see a call sees none, read the log that pytest prints for `Service not found`.
 - **One `start()` per test.** Build a small helper (like `start(env, ...)` in the examples) so that every test loads the blueprint the same way.
 - **The clock does not run.** Time only moves when you call `advance()` (or give `when=`). A `delay: 120` is passed by `advance(120)`.

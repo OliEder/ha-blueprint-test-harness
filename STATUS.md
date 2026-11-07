@@ -4,7 +4,7 @@ A short index. Where things are, which files a task needs, and where the current
 
 ## Right now
 
-- Prototype for automation blueprints. A local Git repository without commits or remote; CI has not run on GitHub yet.
+- Pre-release for automation blueprints. The repository is public and CI on GitHub is green. Release 0.1.0 is prepared on the local branch `release/0.1.0` and waits for the maintainer (see `status/open.md`).
 - Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
 - Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
 
