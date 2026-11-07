@@ -62,7 +62,7 @@ Each is a question, not an answer. Where something similar already exists it is 
 
 ## Ideas from the community
 
-The project is not public yet, so there is no public place to send ideas. When it is, this section will name one (a GitHub Discussions category "Ideas" is the likely choice) and link it here. Until then ideas are added to the log below by the maintainer.
+Ideas are welcome as [GitHub issues with the label `idea`](https://github.com/OliEder/ha-blueprint-test-harness/issues?q=label%3Aidea) ([write one](https://github.com/OliEder/ha-blueprint-test-harness/issues/new?labels=idea)). The maintainer adds discussed and accepted ideas to the log below. GitHub Discussions may follow if there is enough traffic.
 
 A good idea says:
 

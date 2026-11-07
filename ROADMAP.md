@@ -28,7 +28,7 @@ Two things have to hold the whole way, and the milestones below are ordered arou
 
 ### Not yet
 
-- Never run on GitHub or on Linux. No commit history and no remote.
+- The release workflow has not run yet, and there is no release.
 - Automation blueprints only.
 - One Home Assistant version at a time, and the harness uses Home Assistant internals directly, in several places.
 - No branch coverage, no packaging.
@@ -41,7 +41,7 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | ID | Milestone | State | Detail |
 | --- | --- | --- | --- |
 | M0 | Prototype: environment, mutation tool, CI file | done | — |
-| M1 | Repository, first green CI run on Linux, first release (0.1.0) | open | [M1](roadmap/M1-repository-and-first-ci.md) |
+| M1 | Repository, first green CI run on Linux, first release (0.1.0) | active | [M1](roadmap/M1-repository-and-first-ci.md) |
 | M2 | **Broader reference set.** Original fixture blueprints for event, numeric-state and zone triggers, `choose` with `default`, `repeat` and `wait_template`, each with tests and a mutation score | open | [M2](roadmap/M2-broaden-reference-set.md) |
 | M3 | **Compatibility layer.** Every Home Assistant internal the harness uses sits behind one module, with canary tests that name what changed in a new version | open | [M3](roadmap/M3-compatibility-layer.md) |
 | M4 | **Several Home Assistant generations.** A CI matrix over the blueprint's `min_version`, recent monthly releases and the current one; version markers; a weekly pin proposal | open | [M4](roadmap/M4-several-ha-generations.md) |

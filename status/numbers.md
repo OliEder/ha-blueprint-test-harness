@@ -16,8 +16,8 @@ Write a number here with its date and command, and nowhere else without both.
 | `daylight_heartbeat.yaml` mutants killed | 27 mutants: 23 killed, 0 survived, 4 invalid, score 100 % (the first run killed 21 of 23; the two survivors exposed a test gap that was then closed) | 2026-11-07 | `mutate` on that blueprint with `tests/test_daylight_heartbeat.py` |
 | Home Assistant, test package, Python | 2026.10.4, `pytest-homeassistant-custom-component==0.13.375`, 3.14 | 2026-11-07 | `requirements-dev.txt` |
 | Package version | 0.1.0.dev0 (development version; no release yet) | 2026-11-07 | `ha_blueprint_test_harness/__init__.py` |
-| Platforms the tests were run on | macOS only | 2026-11-07 | |
-| CI on GitHub | never run. The YAML is valid and its commands ran locally under `bash`, including the failing case | 2026-11-07 | `.github/workflows/ci.yaml` |
+| Platforms the tests were run on | macOS (locally) and Ubuntu (GitHub Actions, `ubuntu-latest`) | 2026-11-07 | the `CI` runs on GitHub |
+| CI on GitHub | green on the first run: `tests` (168 pass on Home Assistant 2026.10.4) and `mutation` (100 % on both blueprints) | 2026-11-07 | `gh run list --repo OliEder/ha-blueprint-test-harness` |
 | Release workflow | never run. The parts that can run locally (version check, changelog extraction, build) were run | 2026-11-07 | `.github/workflows/release.yaml` |
-| Repository | local Git repository, no commits, no remote | 2026-11-07 | `git log`, `git remote -v` |
+| Repository | public: https://github.com/OliEder/ha-blueprint-test-harness | 2026-11-07 | `git remote -v` |
 | Supported blueprint kinds | automation blueprints only | 2026-11-07 | README |

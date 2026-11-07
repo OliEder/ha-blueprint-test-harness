@@ -18,6 +18,11 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 
+[project.urls]
+Homepage = "https://github.com/OliEder/ha-blueprint-test-harness"
+Issues = "https://github.com/OliEder/ha-blueprint-test-harness/issues"
+Changelog = "https://github.com/OliEder/ha-blueprint-test-harness/blob/main/CHANGELOG.md"
+
 [tool.setuptools]
 packages = ["ha_blueprint_test_harness"]
 
