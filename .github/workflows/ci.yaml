@@ -2,6 +2,10 @@ name: CI
 
 # Job "tests" runs the project's own tests. Job "mutation" breaks motion_light.yaml and the fixture blueprint in
 # small ways and fails if the tests stop noticing; the survivors, if any, are listed in the job summary.
+#
+# The two jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
+# run, so a green check always means that the work was done. If the tests fail on the unchanged blueprint, the
+# mutation tool stops by itself and says so (see docs/mutation-testing.md).
 
 on:
   push:
@@ -34,7 +38,6 @@ jobs:
 
   mutation:
     runs-on: ubuntu-latest
-    needs: tests
     steps:
       - uses: actions/checkout@v7
 
