@@ -47,7 +47,7 @@ asyncio_mode = auto
 pytest_plugins = ["ha_blueprint_test_harness.pytest_plugin"]
 ```
 
-Both are needed. Why, and what happens without them, is in [Troubleshooting](troubleshooting.md).
+Both are needed. Why, and what happens without them, is in [Troubleshooting](troubleshooting.md). If a later test of a blueprint with a `time_pattern` trigger fails with "Lingering timer after test", add the fixture shown under [Configuring your project](configuring-your-project.md#the-two-files-that-must-exist).
 
 ## 4. Your first test
 

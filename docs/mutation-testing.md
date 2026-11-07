@@ -22,7 +22,7 @@ Passing tests tell you the blueprint does what the tests check. They do not tell
 
 Before it breaks anything the tool checks that your tests pass on the original and on an unchanged copy that it read and wrote back itself. If either fails it stops and says so: fix the tests first.
 
-The tool runs your tests many times (once per mutant). The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
+The tool runs your tests many times (once per mutant) and prints the result only at the end, so a run takes minutes without any output: with 73 mutants and 56 tests about 3 minutes (measured by a test project on 2026-11-07). Run it in the background in CI. The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
 
 ## Read the result
 
@@ -62,10 +62,13 @@ assert [call.entity_ids for call in blueprint_env.calls] == [{LIGHT}, {LIGHT}]
 
 After it, all 8 mutants are killed (score 100%). The same happened on Home Assistant's `motion_light` blueprint: the first run killed 16 of 18, and the two survivors showed that nothing tested a sensor that drops out while the light is on.
 
+**Often: defaults nobody relies on.** The tool changes the default of an input (by +1 or to 0). It survives when every test passes the value explicitly. Either add a test that leaves the input out and checks the default, or decide the default is not part of the behaviour.
+
 **Sometimes harmless.** Some changes have no effect in a real Home Assistant, so no test can catch them:
 
 - a `mode: single` changed to `restart` when runs never overlap;
-- a check that guards a situation that cannot occur (for example a state without a timestamp that Home Assistant always sets).
+- a check that guards a situation that cannot occur (for example a state without a timestamp that Home Assistant always sets);
+- a guard whose failure Home Assistant rejects anyway, for example `{{ light | length > 0 }}` changed to `>= 0` before an action with an empty target: nothing is called either way.
 
 Write down why you accept such a survivor, for instance in a comment next to the blueprint, and do not set `--fail-under` to a value that this survivor makes impossible.
 

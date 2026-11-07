@@ -29,10 +29,10 @@ await blueprint_env.start(
 | Parameter | What it is |
 | --- | --- |
 | `blueprint` | Path to the blueprint file (a `str` or a `pathlib.Path`). |
-| `inputs` | A dict of the blueprint's inputs, as you would fill them in the UI: `{"motion_entity": "binary_sensor.motion", "light_target": {"entity_id": "light.hall"}}`. Inputs with a default can be left out. |
+| `inputs` | A dict of the blueprint's inputs, as you would fill them in the UI: `{"motion_entity": "binary_sensor.motion", "light_target": {"entity_id": "light.hall"}}`. Inputs with a default can be left out. Inputs inside `section:` blocks of the blueprint are passed flat, by their own name (checked with a blueprint that uses sections). |
 | `states` | The starting states: `{"binary_sensor.motion": "off"}`. With attributes, give a pair: `{"sensor.power": ("1200", {"unit_of_measurement": "W"})}`. Set before the automation is created. |
 | `services` | The services to replace by recorders, as `"domain.service"` names: `["light.turn_on", "light.turn_off"]`. A service the blueprint calls that is **not** listed is not recorded: Home Assistant logs `Service not found ... Action light.turn_off not found` and the test does **not** fail by itself. List every service your blueprint can call. |
-| `effects` | Optional: what a recorded service does besides recording. `{"light.turn_on": sets_state("on")}` puts the targeted lights into the state `on`, so a later condition sees a light that is on. You may write your own: a function `f(hass, call)`, plain or `async`. |
+| `effects` | Optional: what a recorded service does besides recording. `{"light.turn_on": sets_state("on")}` puts the targeted lights into the state `on`, so a later condition sees a light that is on. You may write your own: a function `f(hass, call)`, plain or `async`. `call` is Home Assistant's own `ServiceCall`, not the harness' `Call`: read the data from `call.data` (it has no `entity_ids`; `call.data["entity_id"]` is a string or a list). |
 | `components` | Real Home Assistant components to set up first, for example `["sun"]` for sunrise and sunset conditions. |
 | `when` | A timezone-aware `datetime` to move the clock to before anything runs, for example `dt.datetime(2026, 6, 21, 20, 0, tzinfo=dt.UTC)`. |
 | `alias` | The automation's name. Rarely needed. |
@@ -89,11 +89,29 @@ await blueprint_env.advance(119)       # nothing yet
 await blueprint_env.advance(1)         # now the light goes off
 ```
 
-Advance in steps if the blueprint does something every few seconds (`time_pattern`): call `advance(5)` several times and look at `calls` in between.
+Two things to know about `advance()` (both measured on 2026-11-07 with Home Assistant 2026.10.4):
+
+- **One call fires a repeating timer once.** With a `time_pattern` trigger every 5 seconds, `advance(30)` gave one run, not six; six calls of `advance(5)` gave six more. Advance in steps of the interval when a blueprint does something every few seconds, and look at `calls` in between.
+- **It is not exact below one second.** A timer can fire up to about half a second early: a `delay` of 1 second had fired after two calls of `advance(0.3)`. Use whole-second delays in your tests and stay at least half a second away from the boundary. The cause was not looked into; it is probably Home Assistant's own test time helper.
 
 ### Times of day, sun conditions and numbers
 
 `when=` starts the clock at a moment you choose, and `components=["sun"]` sets up the real sun component, so `sunrise` and `sunset` conditions work. Home Assistant's test setup uses the time zone US/Pacific (the fixture tests rely on it); pick times accordingly. A complete example with a `time_pattern` trigger, sun conditions, a `choose` block and numbers is the fixture blueprint `tests/blueprints/daylight_heartbeat.yaml` with its tests in `tests/test_daylight_heartbeat.py` (in the repository, not in the package).
+
+### Buttons that are event entities (Zigbee2MQTT and others)
+
+Many buttons appear in Home Assistant as an `event` entity. A press sets the entity's **state to a new timestamp** and the kind of press (`single_up`, `hold_left`, ...) in the **attribute** `event_type`. Simulate it with `set_state`, and give every press a new timestamp:
+
+```python
+# A new timestamp as the state and the kind of press in the attribute `event_type`.
+async def press(env, event_type):
+    stamp = f"2026-01-01T10:00:{next(presses):02d}.000+00:00"
+    await env.set_state("event.hall_button_action", stamp, {"event_type": event_type})
+```
+
+A state trigger fires on a *changed* state, so writing the same timestamp twice is one press, not two. Start the entity in `"unknown"`, like a real one after a restart, and check that the first press still works. The blueprint [`examples/event_entity_light.yaml`](examples/event_entity_light.yaml) and its tests [`examples/test_event_entity_light.py`](examples/test_event_entity_light.py) show the whole pattern, including a trigger that wrongly excluded `unknown` and so lost the first press after a restart: the test for the first press found it.
+
+For a press that is held (`hold_*` followed later by `release_*`), send the first event, call `advance(...)`, then send the release.
 
 ### Assert that nothing happened
 
