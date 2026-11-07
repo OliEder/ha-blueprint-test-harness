@@ -82,6 +82,7 @@ Please leave real entity names, hostnames, tokens and other details of your own 
 | 3 | Version-aware best-practice notes for blueprints | session 2026-11-07 | candidate |
 | 4 | Check that links in agent instructions resolve inside the repository | session 2026-11-07 | candidate |
 | 5 | A documented, isolated way to run tests and blueprints from other people | session 2026-11-07 | candidate |
+| 6 | Test a template on its own and read the trace of a run (found when the harness was tried on a real blueprint) | session 2026-11-07 | accepted, M11 in the roadmap |
 
 Status values: candidate (written down, not discussed), discussed, accepted (now in the roadmap), parked (good, not now), declined (with the reason).
 
