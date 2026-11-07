@@ -44,14 +44,15 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | M2 | **Broader reference set.** Original fixture blueprints for event, numeric-state and zone triggers, `choose` with `default`, `repeat` and `wait_template`, each with tests and a mutation score | open | [M2](roadmap/M2-broaden-reference-set.md) |
 | M3 | **Compatibility layer.** Every Home Assistant internal the harness uses sits behind one module, with canary tests that name what changed in a new version | open | [M3](roadmap/M3-compatibility-layer.md) |
 | M4 | **Several Home Assistant generations.** A CI matrix over the blueprint's `min_version`, recent monthly releases and the current one; version markers; a weekly pin proposal | open | [M4](roadmap/M4-several-ha-generations.md) |
+| M11 | **Templates and traces.** Render a template against the simulated states, read the trace of the last run (evaluated variables, the path through `choose`) and provide config entries, so that the template checks done by hand in an instance can be done in tests. Found on a real blueprint | open | [M11](roadmap/M11-templates-and-traces.md) |
 | M5 | **More kinds of blueprints.** Script blueprints and template (entity) blueprints, with the same fixtures-and-mutation approach | open | — |
 | M6 | **Direct automations, scripts and helpers.** The same scenarios against an automation or script defined directly, and against helpers (template sensors, groups, input helpers); the mutation tool on those configurations | open | — |
-| M7 | Branch coverage from Home Assistant's automation traces (which `choose` branches and conditions ran) | idea | — |
+| M7 | Branch coverage from Home Assistant's automation traces (which `choose` branches and conditions ran); builds on M11 | idea | — |
 | M8 | Real service schemas for core domains (load the real `light`, `notify`, ... instead of a recorder), so that a changed parameter is noticed | idea | — |
 | M9 | Distribution beyond the first release: a machine-readable report (JSON), a reusable GitHub Action for other repositories, publishing to PyPI | idea | — |
 | M10 | Integrations and other extensions: config flows, coordinators, entities. Builds on `pytest-homeassistant-custom-component`; adds the parts it lacks (for example mutation testing of Python code, scenario helpers) | direction | — |
 
-M3 comes before M4 on purpose: a matrix over several versions is only worth running when a version change breaks one known place.
+M3 comes before M4 on purpose: a matrix over several versions is only worth running when a version change breaks one known place. M11 stands before M5 on purpose: it answers a need found on a real blueprint, and M7 (branch coverage) builds on its trace access. The ID is M11 because IDs are never renumbered.
 
 ## Ideas, not scheduled
 
