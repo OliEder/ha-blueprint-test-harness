@@ -13,7 +13,7 @@ How version numbers are chosen, what counts as a breaking change, and how a rele
 A change to any of these is visible to users and is versioned. Everything else (names starting with an underscore, the tests, the documents) is not.
 
 - **Python names** exported by the package (`__all__`): `BlueprintEnv` (with `start`, `set_state`, `fire_event`, `advance`, `settle`, `calls`, `calls_to`), `Call` (with `name`, `data`, `entity_ids`), `sets_state` and `BlueprintLoadError`.
-- **The pytest fixture** `blueprint_env`.
+- **The pytest plugin and fixture:** the module `ha_blueprint_test_harness.pytest_plugin`, which users name in `pytest_plugins`, and the fixture `blueprint_env` it provides.
 - **The mutation command** `python -m ha_blueprint_test_harness.mutate`: its options (`--timeout`, `--workdir`, `--fail-under`, the `--` before the test command), its exit codes (0 fine; 1 the score is below `--fail-under`, or the tests fail on the unchanged blueprint; 2 a test run itself broke) and its outcome names `killed`, `survived`, `invalid` and `error`.
 - **The environment variables** `HA_BLUEPRINT_TEST_HARNESS_ORIGINAL` and `HA_BLUEPRINT_TEST_HARNESS_MUTANT`, through which the mutation command and the harness talk to each other.
 - **The supported Python and Home Assistant versions.**
@@ -61,10 +61,10 @@ A maintainer makes a release. An agent may prepare the release commit and draft 
 2. Set `__version__` in `ha_blueprint_test_harness/__init__.py` to `X.Y.Z`.
 3. In `CHANGELOG.md` rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, add the `Tested with:` line (the numbers are in `status/numbers.md`), and put a new, empty `## [Unreleased]` above it.
 4. Check locally: run the tests, `python tools/release_info.py notes X.Y.Z` (shows the release notes), and `uv build` (builds the package).
-5. Commit as `Release X.Y.Z` and merge it into `main`.
+5. Commit as `Release X.Y.Z` and merge it into `main`. Then run the release workflow by hand on `main` (Actions, Release, Run workflow): a dry run that does everything except create the release and needs no tag. A tag cannot be moved or deleted, so fix what the dry run shows before you tag.
 6. Tag that commit `vX.Y.Z` and push the tag.
 7. `.github/workflows/release.yaml` runs: it checks that the tag equals the version and that the changelog has the section, runs the tests, builds the source archive and the wheel, and creates a **draft** GitHub release with both files and the changelog section as notes. Review the draft and publish it.
-8. Add a line to `roadmap/log/`, and update `status/numbers.md` and, if a milestone is done, its row in `ROADMAP.md`.
+8. Update the line about supported versions in `SECURITY.md`. Add a line to `roadmap/log/`, and update `status/numbers.md` and, if a milestone is done, its row in `ROADMAP.md`.
 
 **After the release**
 

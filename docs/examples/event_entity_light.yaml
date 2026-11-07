@@ -1,0 +1,41 @@
+blueprint:
+  name: Switch a light with an event entity (documentation example)
+  description: >
+    Used in the documentation of ha-blueprint-test-harness. A button that is exposed as an event
+    entity (for example by Zigbee2MQTT) switches a light: "single_up" on, "single_down" off.
+  domain: automation
+  input:
+    button:
+      name: Button
+      selector:
+        entity:
+          domain: event
+    light:
+      name: Light
+      selector:
+        entity:
+          domain: light
+
+# An event entity changes its state to a new timestamp on every press; the kind of press is in the
+# attribute event_type. Going to or coming back from unavailable is not a press. "unknown" is the state
+# until the first press after a restart, so a change *from* unknown is a real press and must not be excluded.
+triggers:
+  - trigger: state
+    entity_id: !input button
+    not_from: unavailable
+    not_to:
+      - unavailable
+      - unknown
+
+actions:
+  - choose:
+      - conditions: "{{ trigger.to_state.attributes.event_type == 'single_up' }}"
+        sequence:
+          - action: light.turn_on
+            target:
+              entity_id: !input light
+      - conditions: "{{ trigger.to_state.attributes.event_type == 'single_down' }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: !input light

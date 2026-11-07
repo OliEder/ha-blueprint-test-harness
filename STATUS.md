@@ -4,7 +4,7 @@ A short index. Where things are, which files a task needs, and where the current
 
 ## Right now
 
-- Prototype for automation blueprints. A local Git repository without commits or remote; CI has not run on GitHub yet.
+- Pre-release for automation blueprints. The repository is public and CI on GitHub is green. Release 0.1.0 is prepared on the local branch `release/0.1.0` and waits for the maintainer (see `status/open.md`).
 - Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
 - Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
 
@@ -14,11 +14,12 @@ Read the first column's files, then the rest only if needed.
 
 | Task | Read first | If needed | Not needed |
 | --- | --- | --- | --- |
-| Understand or change the environment | `ha_blueprint_test_harness/env.py` | README "API" and "Settling"; `memory/settle-instead-of-block-till-done.md` | `mutate.py` |
-| Write tests for a blueprint | README, `tests/test_motion_light.py` (the model) | `env.py` `start()` | `test_mutate.py`, `mutate.py` |
-| Judge mutation survivors | README "Mutation testing", `mutate.py` header | `memory/equivalent-mutants.md`, `memory/mutation-outcomes-killed-invalid.md` | `env.py` |
-| Add or change a mutation operator | `mutate.py` (`_walk`, `_dict_sites`, `_template_variants`), `tests/test_mutate.py` | README table | `env.py` |
+| Understand or change the environment | `ha_blueprint_test_harness/env.py` | `docs/writing-tests.md`; `memory/settle-instead-of-block-till-done.md` | `mutate.py` |
+| Write tests for a blueprint | `docs/writing-tests.md`, `docs/examples/` (the models) | `env.py` `start()` | `test_mutate.py`, `mutate.py` |
+| Judge mutation survivors | `docs/mutation-testing.md`, `mutate.py` header | `memory/equivalent-mutants.md`, `memory/mutation-outcomes-killed-invalid.md` | `env.py` |
+| Add or change a mutation operator | `mutate.py` (`_walk`, `_dict_sites`, `_template_variants`), `tests/test_mutate.py` | `docs/mutation-testing.md` (the operator table) | `env.py` |
 | CI | `.github/workflows/ci.yaml` | | |
+| Install, set up or use the tool; fix an error message | `docs/index.md`, then the page it names | `README.md` | `mutate.py`, `env.py` |
 | Version, release or changelog | `RELEASING.md`, `CHANGELOG.md` | `pyproject.toml`, `.github/workflows/release.yaml` | |
 | Work on a milestone | `ROADMAP.md` (the table), then the milestone's file in `roadmap/` | the `memory/` entries it names; `roadmap/log/` for the recent past | the other milestone files |
 | Current numbers, open items, commands | the matching file in `status/` | | the other `status/` files |
