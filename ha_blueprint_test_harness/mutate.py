@@ -37,6 +37,8 @@ from typing import Any
 
 import yaml
 
+from . import _yaml
+
 # --------------------------------------------------------------------------------------- YAML round trip
 
 
@@ -84,27 +86,8 @@ class _Dumper(yaml.SafeDumper):
 _Dumper.add_representer(Tagged, lambda dumper, tagged: dumper.represent_scalar(f"!{tagged.tag}", tagged.value))
 
 
-# The largest file the tool reads, and the most values an alias may expand to. An alias (*x) is written out in full when
-# a mutant is dumped, so a few nested aliases make the dump and the search for mutants grow without limit (a 260-byte
-# file ran for more than two minutes before the first test). Aliases themselves are fine: real blueprints use them (the
-# Aqara switch has 1040 values after expansion), so the limit is on the expanded size, about twenty times that.
+# The largest file the tool reads. What aliases may expand to is limited too (see ``_yaml.py``).
 _MAX_BYTES = 1_000_000
-_MAX_VALUES = 20_000
-
-
-# Counts the values of a document, a shared one every time it is reached, and stops counting above ``limit`` (so an alias
-# bomb does not take long to refuse).
-def _expanded_size(document: Any, limit: int) -> int:
-    count, stack = 0, [document]
-    while stack and count <= limit:
-        node = stack.pop()
-        count += 1
-        if isinstance(node, dict):
-            stack.extend(node.keys())
-            stack.extend(node.values())
-        elif isinstance(node, list):
-            stack.extend(node)
-    return count
 
 
 # Reads blueprint text into Python lists, dicts and Tagged objects. Raises ValueError for input that is too large or
@@ -113,10 +96,9 @@ def _expanded_size(document: Any, limit: int) -> int:
 def load(text: str) -> Any:
     if len(text.encode("utf-8")) > _MAX_BYTES:
         raise ValueError(f"the file is too large for the mutation tool (more than {_MAX_BYTES} bytes)")
+    _yaml.check_expansion(text)
     document = yaml.load(text, Loader=_Loader)
-    if any(isinstance(event, yaml.AliasEvent) for event in yaml.parse(text, Loader=_Loader)):
-        if _expanded_size(document, _MAX_VALUES) > _MAX_VALUES:
-            raise ValueError(f"the file expands to more than {_MAX_VALUES} values through YAML aliases (*name); write some of them out")
+    if _yaml.has_aliases(text):
         document = yaml.load(dump(document), Loader=_Loader)
     return document
 
