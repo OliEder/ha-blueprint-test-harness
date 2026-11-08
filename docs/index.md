@@ -19,8 +19,8 @@ The overview, the credits and the licence are in the [README](../README.md). Ver
 - It tests **blueprint logic**: triggers, conditions, templates, waits, delays and which services get called with which data.
 - It does **not** talk to a real Home Assistant instance or a device. Every service you list in `services=` is replaced by a recorder that accepts any data, so a parameter that a real integration would reject goes unnoticed.
 - It supports **automation blueprints only**. Script and template blueprints are not implemented.
-- It is **not an official Home Assistant project.** It is built on `pytest-homeassistant-custom-component`, which uses internals of Home Assistant; those can change between versions.
+- It is **not an official Home Assistant project.** It is built on `pytest-homeassistant` (or the older `pytest-homeassistant-custom-component`), which use internals of Home Assistant; those can change between versions.
 
 ## State of these pages
 
-Written and checked on 2026-11-07 with Home Assistant 2026.10.4, `pytest-homeassistant-custom-component` 0.13.375 and Python 3.14, on macOS. The runnable examples are in [`examples/`](examples/) and are run by the project's own test suite, so they cannot drift from the code unnoticed. Steps that were not run are marked "not tried".
+Written and checked on 2026-11-07 with Home Assistant 2026.10.4, `pytest-homeassistant-custom-component` 0.13.375 and Python 3.14, on macOS; the support for `pytest-homeassistant` 2026.11.0 (Home Assistant 2026.11.0) was added and run on 2026-11-08. The runnable examples are in [`examples/`](examples/) and are run by the project's own test suite, so they cannot drift from the code unnoticed. Steps that were not run are marked "not tried".

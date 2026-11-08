@@ -1,9 +1,12 @@
 name: CI
 
-# Job "tests" runs the project's own tests. Job "mutation" breaks motion_light.yaml and the fixture blueprint in
-# small ways and fails if the tests stop noticing; the survivors, if any, are listed in the job summary.
+# Job "tests" runs the project's own tests with `pytest-homeassistant` (maintained in Home Assistant core,
+# requirements-dev.txt). Job "tests-custom-component" runs the same tests with the older package
+# `pytest-homeassistant-custom-component` (requirements-dev-custom-component.txt). Job "mutation" breaks
+# motion_light.yaml and the fixture blueprint in small ways and fails if the tests stop noticing; the survivors, if
+# any, are listed in the job summary. It uses the package from core.
 #
-# The two jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
+# The jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
 # run, so a green check always means that the work was done. If the tests fail on the unchanged blueprint, the
 # mutation tool stops by itself and says so (see docs/mutation-testing.md).
 
@@ -31,7 +34,26 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -r requirements-dev.txt
-          python -m pip show homeassistant pytest-homeassistant-custom-component | grep -E "^(Name|Version)"
+          python -m pip list | grep -E "^(homeassistant|pytest-homeassistant[a-z-]*) "
+
+      - name: Tests
+        run: python -m pytest -p no:cacheprovider -q
+
+  tests-custom-component:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-dev-custom-component.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements-dev-custom-component.txt
+          python -m pip list | grep -E "^(homeassistant|pytest-homeassistant[a-z-]*) "
 
       - name: Tests
         run: python -m pytest -p no:cacheprovider -q

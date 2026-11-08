@@ -24,7 +24,20 @@ from typing import Any
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dtu
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+# Home Assistant's test helpers come from one of two packages: `pytest-homeassistant` (maintained in Home Assistant
+# core) or `pytest-homeassistant-custom-component` (the older one). They must not be installed together, so use
+# whichever is there and say what to install if neither is.
+try:
+    from pytest_homeassistant.common import async_fire_time_changed
+except ModuleNotFoundError:
+    try:
+        from pytest_homeassistant_custom_component.common import async_fire_time_changed
+    except ModuleNotFoundError as error:
+        raise ImportError(
+            "No Home Assistant test package found. Install `pytest-homeassistant` (or, for older Home Assistant "
+            "versions, `pytest-homeassistant-custom-component`); see docs/getting-started.md."
+        ) from error
 
 # How many times the event loop gets to run in settle(). Home Assistant's own tests wait 10 for the same reason.
 _SETTLE_ITERATIONS = 20
