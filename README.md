@@ -31,7 +31,7 @@ Needs Python 3.14 and one of Home Assistant's two test packages (`pytest-homeass
 
 A green run says the blueprint logic does what the test describes under these assumptions. It says nothing about a real device.
 
-Only automation blueprints are supported. The API and the patterns are in [Writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md).
+Automation blueprints and automations written directly (`start_automation()`) are supported; scripts, helpers, script and template blueprints are not. The API and the patterns are in [Writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md).
 
 ## Develop this project
 

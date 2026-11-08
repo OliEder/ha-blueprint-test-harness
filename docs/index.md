@@ -1,6 +1,6 @@
 # Documentation
 
-`ha-blueprint-test-harness` runs a Home Assistant **automation blueprint** inside a throw-away Home Assistant, lets you set states, fire events and move a clock, and records which services the blueprint called. A second tool breaks the blueprint in small ways to check that your tests would notice.
+`ha-blueprint-test-harness` runs a Home Assistant **automation blueprint** (or an automation written directly) inside a throw-away Home Assistant, lets you set states, fire events and move a clock, and records which services the blueprint called. A second tool breaks the blueprint in small ways to check that your tests would notice.
 
 Read in this order:
 
@@ -16,9 +16,9 @@ The overview, the credits and the licence are in the [README](../README.md). Ver
 
 ## What it is, and what it is not
 
-- It tests **blueprint logic**: triggers, conditions, templates, waits, delays and which services get called with which data.
+- It tests **blueprint and automation logic**: triggers, conditions, templates, waits, delays and which services get called with which data.
 - It does **not** talk to a real Home Assistant instance or a device. Every service you list in `services=` is replaced by a recorder that accepts any data, so a parameter that a real integration would reject goes unnoticed.
-- It supports **automation blueprints only**. Script and template blueprints are not implemented.
+- It supports **automation blueprints and automations written directly** (`start_automation()`, also for the mutation tool). Script and template blueprints, scripts and helpers are not implemented.
 - It is **not an official Home Assistant project.** It is built on `pytest-homeassistant` (or the older `pytest-homeassistant-custom-component`), which use internals of Home Assistant; those can change between versions.
 
 ## State of these pages

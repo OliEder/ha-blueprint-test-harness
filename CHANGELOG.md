@@ -4,6 +4,17 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+### Added
+
+- `BlueprintEnv.start_automation(automation, pick=None, ...)`: runs an automation written directly (a dict, or a YAML file with one automation or a list as in `automations.yaml`), without a blueprint header.
+- `responses=` for `start()` and `start_automation()`: services that return an answer (`weather.get_forecasts`) work with `response_variable`. The value is a dict or a function of the call.
+- The mutation tool accepts an automation file, with `--pick` for a list. `start_automation(path)` swaps in the broken copy.
+- Documentation: "Test an automation you wrote directly" and two runnable examples (`car_driver`, `frost_warning`).
+
+### Changed
+
+- The message when a blueprint or automation does not come up now reads "the automation did not come up as a working automation".
+
 ## [0.3.0] - 2026-11-08
 
 Pre-1.0: new public names are the reason for a MINOR version.

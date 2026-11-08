@@ -1,0 +1,39 @@
+# An automation written directly (as in automations.yaml), not a blueprint. It remembers who leaves the house
+# after the car was unplugged, so that a later "car not plugged in" message can go to that person.
+id: car_driver
+alias: Remember who drives after the car is unplugged
+mode: restart
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.car_plug
+    from: "on"
+    to: "off"
+actions:
+  - variables:
+      alice_was_home: "{{ is_state('device_tracker.alice_phone', 'home') }}"
+      bob_was_home: "{{ is_state('device_tracker.bob_phone', 'home') }}"
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.driver
+    data:
+      value: ""
+  - wait_for_trigger:
+      - trigger: state
+        entity_id:
+          - device_tracker.alice_phone
+          - device_tracker.bob_phone
+        from: home
+    timeout: "00:20:00"
+    continue_on_timeout: false
+  - delay: "00:03:00"
+  - variables:
+      who: >-
+        {% set names = [] %}
+        {% if alice_was_home and not is_state('device_tracker.alice_phone', 'home') %}{% set names = names + ['Alice'] %}{% endif %}
+        {% if bob_was_home and not is_state('device_tracker.bob_phone', 'home') %}{% set names = names + ['Bob'] %}{% endif %}
+        {{ names | join(',') }}
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.driver
+    data:
+      value: "{{ who }}"

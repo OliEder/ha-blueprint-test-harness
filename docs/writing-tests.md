@@ -22,7 +22,7 @@ The fixture `blueprint_env` gives every test a fresh Home Assistant, an empty co
 ```python
 await blueprint_env.start(
     blueprint, inputs=None, *,
-    states=None, services=(), effects=None, components=(), config_entries=(), when=None, alias="blueprint under test",
+    states=None, services=(), effects=None, responses=None, components=(), config_entries=(), when=None, alias="blueprint under test",
 )
 ```
 
@@ -33,12 +33,33 @@ await blueprint_env.start(
 | `states` | The starting states: `{"binary_sensor.motion": "off"}`. With attributes, give a pair: `{"sensor.power": ("1200", {"unit_of_measurement": "W"})}`. Set before the automation is created. |
 | `services` | The services to replace by recorders, as `"domain.service"` names: `["light.turn_on", "light.turn_off"]`. A service the blueprint calls that is **not** listed is not recorded: Home Assistant logs `Service not found ... Action light.turn_off not found` and the test does **not** fail by itself. List every service your blueprint can call. |
 | `effects` | Optional: what a recorded service does besides recording. `{"light.turn_on": sets_state("on")}` puts the targeted lights into the state `on`, so a later condition sees a light that is on. You may write your own: a function `f(hass, call)`, plain or `async`. `call` is Home Assistant's own `ServiceCall`, not the harness' `Call`: read the data from `call.data` (it has no `entity_ids`; `call.data["entity_id"]` is a string or a list). |
+| `responses` | Optional: services that **return an answer**, such as `weather.get_forecasts`: `{"weather.get_forecasts": {"weather.home": {"forecast": [...]}}}`. The value is the dict the service returns, or a function of the call (plain or `async`) that returns it. Such a service works with `response_variable`; the call is recorded in `calls` like any other. A name must not be in `services` as well (`ValueError`). Without it the service does not exist and the run stops, even with `continue_on_error`. |
 | `components` | Real Home Assistant components to set up first, for example `["sun"]` for sunrise and sunset conditions. |
 | `config_entries` | Optional: config entries to add before the blueprint starts, for template functions such as `config_entry_attr`. Create them with `MockConfigEntry(domain=..., title=...)`, exported by the harness (from whichever test package is installed). |
 | `when` | A timezone-aware `datetime` to move the clock to before anything runs, for example `dt.datetime(2026, 6, 21, 20, 0, tzinfo=dt.UTC)`. |
 | `alias` | The automation's name. Rarely needed. |
 
 If the blueprint does not turn into a working automation (a missing required input, invalid YAML), `start()` raises **`BlueprintLoadError`**. The reason is in the log that pytest prints with the failure, for example `Failed to generate automation from blueprint: Missing input light`.
+
+## `start_automation()`
+
+An automation written directly (as in `automations.yaml` or the UI's YAML view) is loaded without a blueprint and without any change to it:
+
+```python
+await blueprint_env.start_automation(
+    automation, *, pick=None,
+    states=None, services=(), effects=None, responses=None, components=(), config_entries=(), when=None,
+)
+```
+
+| Parameter | What it is |
+| --- | --- |
+| `automation` | A dict with the automation's configuration, or the path of a YAML file. The file holds one automation, or a list as `automations.yaml` does. |
+| `pick` | For a list with several automations: the `id` or the `alias` of the one to load. Without it, or with a name that matches nothing, you get a `ValueError`; a list with one entry needs no `pick`. |
+
+All other parameters are those of `start()`. The harness gives the automation its own `id` so that `last_trace()` works; the rest is used as written. An invalid automation raises `BlueprintLoadError`, as for a blueprint. `start()` and `start_automation()` together can be called once per test.
+
+**Pass a file, not a dict, if you want to measure the tests with the [mutation tool](mutation-testing.md#automations-written-directly).** The tool swaps the file for a broken copy; a dict cannot be swapped.
 
 ## Acting on the blueprint
 
@@ -167,6 +188,29 @@ assert "action/2/choose/0/sequence/0" in trace.path   # the first branch of the 
 
 This catches a mistake that end-to-end tests miss: a template branch written as a bare `false` arrives as the **text** `"false"`, which counts as true in a later condition (`{{ desired_on and not heater_on }}`). Write `{{ false }}`. `render()` evaluates a template without running the blueprint: `blueprint_env.render("{{ states('sensor.room') | float > 15 }}")`.
 
+### Test an automation you wrote directly
+
+Take the automation as it is in your `automations.yaml`, copy the entry into a file, and replace your own entity names if the file goes into a public repository. Two runnable examples: [`examples/test_car_driver.py`](examples/test_car_driver.py) (a wait with a timeout, a delay and `mode: restart`) and [`examples/test_frost_warning.py`](examples/test_frost_warning.py) (a service that returns an answer).
+
+```python
+AUTOMATION = pathlib.Path(__file__).parent / "car_driver.yaml"
+
+async def test_the_person_who_leaves_is_remembered(blueprint_env):
+    await blueprint_env.start_automation(AUTOMATION, states=STATES, services=["input_text.set_value"])
+    await blueprint_env.set_state("binary_sensor.car_plug", "off")
+    await blueprint_env.set_state("device_tracker.alice_phone", "not_home")
+    await blueprint_env.advance(180)
+    assert blueprint_env.calls_to("input_text.set_value")[-1].data["value"] == "Alice"
+```
+
+Things that are different from a blueprint:
+
+- **Every service the automation calls must be listed** in `services=` or `responses=`, as for a blueprint. A call to a service that is not there is logged and does not fail the test.
+- **A service with an answer needs `responses=`.** A run that asks `weather.get_forecasts` for its answer stops at that step if the service is missing.
+- **Loops and restarts need time in small steps.** `advance(30)` moves the clock once, so a `repeat` that waits one second runs one round, not thirty. Use `for _ in range(30): await blueprint_env.advance(1)`. With `mode: restart`, the old run is cancelled a few event-loop rounds after the new trigger; `await blueprint_env.settle()` once more before you look at the calls.
+- **Look at the decision, not only the calls.** `last_trace().variables` shows what a template evaluated; the first scenarios on a real automation found a template that returned the text `"false"`.
+- **Device triggers (`device_id`) do not load.** They refer to a device in the registry, and the throw-away Home Assistant has none: the automation comes up as unavailable and `start_automation()` raises `BlueprintLoadError` (checked with a trigger of type `opened` and an unknown device). Test a copy of the automation with an entity-based trigger instead.
+
 ### A blueprint that must not load
 
 ```python
@@ -196,4 +240,4 @@ A green test says that the blueprint's logic does what the test describes, under
 - **One `start()` per test.** Build a small helper (like `start(env, ...)` in the examples) so that every test loads the blueprint the same way.
 - **The clock does not run.** Time only moves when you call `advance()` (or give `when=`). A `delay: 120` is passed by `advance(120)`.
 - **Don't call `hass.async_block_till_done()`.** It never returns while a script waits for a trigger or sits in a `delay`. The harness lets the event loop run 20 iterations instead, as Home Assistant's own tests do. A very long chain of actions may need another `await settle()`.
-- **Only automation blueprints.** Script and template blueprints are not implemented.
+- **Automation blueprints and automations only.** Script and template blueprints, scripts and helpers are not implemented.
