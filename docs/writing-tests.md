@@ -209,6 +209,7 @@ Things that are different from a blueprint:
 - **A service with an answer needs `responses=`.** A run that asks `weather.get_forecasts` for its answer stops at that step if the service is missing.
 - **Loops and restarts need time in small steps.** `advance(30)` moves the clock once, so a `repeat` that waits one second runs one round, not thirty. Use `for _ in range(30): await blueprint_env.advance(1)`. With `mode: restart`, the old run is cancelled a few event-loop rounds after the new trigger; `await blueprint_env.settle()` once more before you look at the calls.
 - **Look at the decision, not only the calls.** `last_trace().variables` shows what a template evaluated; the first scenarios on a real automation found a template that returned the text `"false"`.
+- **`homeassistant: start` triggers once on the event `homeassistant_started`** (checked in Home Assistant 2026.10 and 2026.11). Fire it yourself after `start_automation()`: `await blueprint_env.fire_event("homeassistant_started")`. Older versions fired the trigger when the automation was set up while Home Assistant was starting, so check the version you test against.
 - **Device triggers (`device_id`) do not load.** They refer to a device in the registry, and the throw-away Home Assistant has none: the automation comes up as unavailable and `start_automation()` raises `BlueprintLoadError` (checked with a trigger of type `opened` and an unknown device). Test a copy of the automation with an entity-based trigger instead.
 
 ### A blueprint that must not load

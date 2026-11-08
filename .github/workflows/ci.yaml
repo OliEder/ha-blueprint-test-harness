@@ -3,7 +3,7 @@ name: CI
 # Job "tests" runs the project's own tests with `pytest-homeassistant` (maintained in Home Assistant core,
 # requirements-dev.txt). Job "tests-custom-component" runs the same tests with the older package
 # `pytest-homeassistant-custom-component` (requirements-dev-custom-component.txt). Job "mutation" breaks
-# motion_light.yaml and the fixture blueprint in small ways and fails if the tests stop noticing; the survivors, if
+# motion_light.yaml, the fixture blueprint and the reference automations in small ways and fails if the tests stop noticing; the survivors, if
 # any, are listed in the job summary. It uses the package from core.
 #
 # The jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
@@ -91,3 +91,16 @@ jobs:
           status=${PIPESTATUS[0]}
           { echo "### Mutation run: daylight_heartbeat.yaml"; echo; echo '```'; tail -n 30 mutation-fixture.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+
+      - name: Mutation runs on the reference automations
+        if: always()
+        run: |
+          set +e
+          failed=0
+          for name in humidity_warning range_charging outage_lock; do
+            python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --fail-under 90 -- \
+              python -m pytest -q -x -p no:cacheprovider "tests/test_$name.py" | tee "mutation-$name.txt"
+            [ "${PIPESTATUS[0]}" -eq 0 ] || failed=1
+            { echo "### Mutation run: $name.yaml"; echo; echo '```'; tail -n 30 "mutation-$name.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit "$failed"

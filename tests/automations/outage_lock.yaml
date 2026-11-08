@@ -1,0 +1,93 @@
+# Reference automation (original, derived from a real one): when the inverter reports a grid outage, lock the wallbox so
+# that the car does not drain the battery. The lock is repeated until the wallbox confirms it (at most 15 tries); it is
+# released only when the grid has been back for two minutes and a battery-protection switch is off.
+id: outage_lock
+alias: Lock the wallbox during a grid outage
+mode: restart
+triggers:
+  - trigger: state
+    entity_id: sensor.inverter_state
+    to: Off Grid
+    for:
+      seconds: 5
+    id: offgrid
+  - trigger: state
+    entity_id: sensor.inverter_state
+    to: On Grid
+    for:
+      minutes: 2
+    id: ongrid
+  - trigger: state
+    entity_id: input_boolean.battery_protection
+    to: "off"
+    id: protection_off
+  - trigger: homeassistant
+    event: start
+    id: start
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: offgrid
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: start
+                  - condition: state
+                    entity_id: sensor.inverter_state
+                    state: Off Grid
+        sequence:
+          - alias: Remember that we locked it
+            action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.wallbox_locked_by_outage
+          - alias: Lock the wallbox (repeat until confirmed)
+            repeat:
+              sequence:
+                - action: select.select_option
+                  continue_on_error: true
+                  target:
+                    entity_id: select.wallbox_lock
+                  data:
+                    option: "1"
+                - wait_template: "{{ is_state('select.wallbox_lock', '1') }}"
+                  timeout:
+                    seconds: 20
+                  continue_on_timeout: true
+              until:
+                - condition: template
+                  value_template: "{{ is_state('select.wallbox_lock', '1') or repeat.index >= 15 }}"
+          - action: notify.phone
+            data:
+              title: "Grid outage: wallbox locked"
+              message: >-
+                Inverter is 'Off Grid'. Wallbox {{ 'locked' if is_state('select.wallbox_lock', '1') else 'NOT confirmed locked, please check' }}.
+                Battery {{ states('sensor.battery_level') }} %.
+    default:
+      - alias: Release when the grid is back and the battery protection is off
+        if:
+          - condition: state
+            entity_id: input_boolean.wallbox_locked_by_outage
+            state: "on"
+          - condition: state
+            entity_id: sensor.inverter_state
+            state: On Grid
+          - condition: state
+            entity_id: input_boolean.battery_protection
+            state: "off"
+        then:
+          - action: select.select_option
+            target:
+              entity_id: select.wallbox_lock
+            data:
+              option: "0"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.wallbox_locked_by_outage
+          - action: notify.phone
+            data:
+              title: "Grid is back: wallbox free"
+              message: Inverter is 'On Grid' again, wallbox released.

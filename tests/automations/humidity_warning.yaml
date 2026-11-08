@@ -1,0 +1,54 @@
+# Reference automation (original, derived from a real one): warn when the relative humidity in a room stays above a
+# threshold for hours. Several sensors share one automation; a lookup table maps the triggering sensor to its room.
+# The message says whether airing helps, from the absolute humidity inside and outside.
+id: humidity_warning
+alias: Humidity warning
+mode: queued
+max: 12
+triggers:
+  - trigger: numeric_state
+    entity_id:
+      - sensor.bathroom_humidity
+      - sensor.laundry_humidity
+    above: 70
+    for:
+      hours: 3
+conditions:
+  # A sensor that comes back from unavailable arms the trigger without a real crossing; ignore that.
+  - condition: template
+    value_template: "{{ trigger.from_state is none or trigger.from_state.state not in ['unavailable', 'unknown'] }}"
+actions:
+  - variables:
+      rooms:
+        sensor.bathroom_humidity:
+          name: Bathroom
+          temp: sensor.bathroom_temperature
+          dew: sensor.bathroom_dew_point
+          abs: sensor.bathroom_absolute_humidity
+        sensor.laundry_humidity:
+          name: Laundry
+          temp: sensor.laundry_temperature
+          dew: sensor.laundry_dew_point
+          abs: sensor.laundry_absolute_humidity
+  - alias: Find the room
+    variables:
+      room: "{{ rooms[trigger.entity_id] }}"
+  - alias: Measurements
+    variables:
+      rh: "{{ states(trigger.entity_id) | float(0) | round(0) }}"
+      t_in: "{{ states(room.temp) | float(0) | round(1) }}"
+      dew: "{{ states(room.dew) | float(0) | round(1) }}"
+      ah_in: "{{ states(room.abs) | float(0) }}"
+      rh_out: "{{ state_attr('weather.home', 'humidity') | float(70) }}"
+      t_out: "{{ state_attr('weather.home', 'temperature') | float(10) }}"
+  - variables:
+      ah_out: "{{ (216.7 * (rh_out / 100 * 6.112 * e ** (17.62 * t_out / (243.12 + t_out))) / (273.15 + t_out)) | round(1) }}"
+  - variables:
+      airing_helps: "{{ ah_out < ah_in - 1 }}"
+  - action: notify.phone
+    data:
+      title: "Mold risk: {{ room.name }}"
+      message: >-
+        Humidity has been above 70 % for 3 hours (now {{ rh }} %, {{ t_in }} °C, dew point {{ dew }} °C).
+        {% if airing_helps %}Airing helps: outside {{ ah_out }} g/m³, inside {{ ah_in | round(1) }} g/m³.
+        {% else %}Airing does not help now (outside {{ ah_out }} g/m³, inside {{ ah_in | round(1) }} g/m³). Better heat the room slightly or dehumidify.{% endif %}

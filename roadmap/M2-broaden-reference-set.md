@@ -5,7 +5,7 @@ description: Add original fixture blueprints for more trigger kinds and action t
 metadata:
   type: roadmap-item
   depends_on: []
-  applies_to: [tests/blueprints/daylight_heartbeat.yaml, tests/test_daylight_heartbeat.py, memory/equivalent-mutants.md]
+  applies_to: [tests/automations/, tests/blueprints/daylight_heartbeat.yaml, tests/test_daylight_heartbeat.py, memory/equivalent-mutants.md]
   updated: 2026-11-08
 ---
 
@@ -14,6 +14,8 @@ metadata:
 **Scope.** Fixtures for event triggers, numeric-state triggers (`above`, `below`, `for`), zone triggers, `choose` with a `default`, `repeat` and `wait_template`. For each: tests through `blueprint_env`, a mutation run, and a judgement of every survivor (a test, or an equivalent mutant recorded in `memory/equivalent-mutants.md`). Where the mutation tool lacks an operator that a fixture needs, add the operator with a unit test.
 
 **Interim approach (decided 2026-11-08).** Until targeted fixtures exist for concrete test cases, existing blueprints and automations of the maintainer are run through the harness as they are, because that is where most has been learned so far (the gaps in M11, the wrapper for automations in M6). Such a case is kept as a pinned copy (source and tag or hash named) and is not a required CI check when its mutation run is long. This relaxes the rule above that every fixture is an original; the targeted original fixtures (for example numeric-state and zone triggers) are still the goal and replace these cases one by one.
+
+**Progress (2026-11-08).** Three reference automations written directly exist under `tests/automations/`, derived from real ones of the maintainer with neutral names: `humidity_warning.yaml` (a `numeric_state` trigger with `for:` on several sensors, a lookup table, a formula; mutation 14 of 15), `range_charging.yaml` (a chain of `variables`, time zone, weekdays; 46 of 50) and `outage_lock.yaml` (`repeat` with `until`, `wait_template`, `choose` with `default`, `homeassistant: start`, `mode: restart`; 39 of 39). Every survivor is a recorded equivalent mutant (`memory/equivalent-mutants.md`). Still missing: fixtures for event triggers with `event_data`, zone triggers and numeric-state conditions on attributes.
 
 **Done when**
 - At least three more fixtures exist, each with tests.
