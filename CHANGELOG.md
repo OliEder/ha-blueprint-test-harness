@@ -4,6 +4,25 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
+A PATCH version: it fixes a regression of 0.4.0 and adds no public name.
+
+Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 3.14.3 (macOS) and Ubuntu (CI); also Home Assistant 2026.10.4 with `pytest-homeassistant-custom-component` 0.13.375, Python 3.14.3.
+
+### Security
+
+- `start()` and `start_automation()` refuse a file whose YAML aliases expand to more than 20 000 values (`BlueprintLoadError` and `ValueError`), as the mutation tool does. Before, such a file (a few nested aliases) kept Home Assistant busy for minutes inside a test. The limit is generous: the real blueprint that showed the need has about 1 000 values.
+
+### Changed
+
+- In a file for `start_automation()`, the parts that were aliases are independent copies now, so that a change to one place never changes another. Ordinary aliases already worked in `start()` and `start_automation()` and still do; tests now cover them.
+- The mutation tool flushes each progress line at once. Into a file or through a pipe (`| tee` in CI) Python held the lines back until a block was full, so a long run showed nothing until it ended.
+
+### Fixed
+
+- The mutation tool works again on files that use YAML aliases. 0.4.0 refused every file with an alias (`*name`), including real blueprints, such as one with a list of options used in three places. Now an alias is accepted, what it expands to is limited (20 000 values, the real blueprint has about 1 000), and the places that share an alias are made independent so that a mutation changes only one of them. (Before 0.4.0 one mutation changed every place that shared an alias, which falsified the result.)
+
 ## [0.4.0] - 2026-11-08
 
 Pre-1.0: new public names are the reason for a MINOR version.

@@ -27,6 +27,8 @@ from homeassistant.helpers.template import Template
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dtu
 
+from . import _yaml
+
 # Home Assistant's test helpers come from one of two packages: `pytest-homeassistant` (maintained in Home Assistant
 # core) or `pytest-homeassistant-custom-component` (the older one). They must not be installed together, so use
 # whichever is there and say what to install if neither is.
@@ -116,10 +118,15 @@ def _mutation_override(source: pathlib.Path) -> pathlib.Path:
 # A blueprint is read by Home Assistant's own YAML loader, which resolves tags such as !env_var, !include and !secret
 # outside the template sandbox: a blueprint file could read an environment variable or any YAML file the user can read,
 # and the value would show up in the recorded calls and in the test output. Only !input is part of a blueprint, so any
-# other tag is refused before the file is copied. Standard YAML tags (!!str and so on) are plain data and stay allowed.
-def _refuse_reading_tags(source: pathlib.Path) -> None:
+# other tag is refused before the file is copied, and so is a file whose aliases expand too far (see _yaml.py). Standard YAML tags (!!str and so on) are plain data and stay allowed.
+def _check_blueprint_file(source: pathlib.Path) -> None:
+    text = source.read_text(encoding="utf-8")
     try:
-        tokens = list(yaml.scan(source.read_text(encoding="utf-8"), Loader=yaml.SafeLoader))
+        _yaml.check_expansion(text)
+    except ValueError as error:
+        raise BlueprintLoadError(f"the blueprint {source.name}: {error}") from error
+    try:
+        tokens = list(yaml.scan(text, Loader=yaml.SafeLoader))
     except yaml.YAMLError:
         return  # invalid YAML: Home Assistant reports it when it loads the blueprint
     for token in tokens:
@@ -138,7 +145,11 @@ def _load_automation(automation: Mapping[str, Any] | str | pathlib.Path, pick: s
     if isinstance(automation, Mapping):
         return dict(automation)
     # Under the mutation tool the file that is being mutated is swapped for the mutant here.
-    loaded = yaml.safe_load(_mutation_override(pathlib.Path(automation)).read_text(encoding="utf-8"))
+    text = _mutation_override(pathlib.Path(automation)).read_text(encoding="utf-8")
+    _yaml.check_expansion(text)
+    loaded = yaml.safe_load(text)
+    if _yaml.has_aliases(text):
+        loaded = _yaml.unshare(loaded)  # a part that was an alias becomes a copy of its own
     if isinstance(loaded, Mapping):
         return dict(loaded)
     if not isinstance(loaded, list) or not all(isinstance(item, Mapping) for item in loaded):
@@ -208,7 +219,7 @@ class BlueprintEnv:
         # Home Assistant looks for blueprints in <config>/blueprints/automation/, so put a copy there.
         self._claim()
         source = _mutation_override(pathlib.Path(blueprint))
-        _refuse_reading_tags(source)
+        _check_blueprint_file(source)
         target = self._config_dir / "blueprints" / "automation" / "harness"
         target.mkdir(parents=True)
         shutil.copy(source, target / source.name)

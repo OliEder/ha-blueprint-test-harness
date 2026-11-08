@@ -94,3 +94,28 @@ def test_jobs_below_one_is_an_error(tmp_path):
 def test_the_option_is_read_from_the_command_line():
     own, command = mutate.split_command(["lamp.yaml", "--jobs", "4", "--", "pytest"])
     assert own == ["lamp.yaml", "--jobs", "4"] and command == ["pytest"]
+
+
+# A progress line must reach the file or pipe at once: piped through `tee` or redirected to a file, Python holds output
+# back until a block is full, so a run of many minutes showed nothing until its end.
+def test_progress_lines_are_flushed_at_once(monkeypatch):
+    class Recorder:
+        def __init__(self):
+            self.written, self.flushed = [], 0
+
+        def write(self, text):
+            self.written.append(text)
+
+        def flush(self):
+            self.flushed += 1
+
+    recorder = Recorder()
+    monkeypatch.setattr(sys, "stdout", recorder)
+    mutate._progress("killed    M001  something")
+    assert "killed    M001  something" in "".join(recorder.written) and recorder.flushed >= 1
+
+
+def test_the_default_log_of_a_run_is_the_flushing_one():
+    import inspect
+
+    assert inspect.signature(mutate.run_mutation).parameters["log"].default is mutate._progress
