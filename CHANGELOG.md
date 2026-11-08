@@ -4,6 +4,12 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
+A PATCH version: it fixes a regression of 0.4.0 and adds no public name.
+
+Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 3.14.3 (macOS) and Ubuntu (CI); also Home Assistant 2026.10.4 with `pytest-homeassistant-custom-component` 0.13.375, Python 3.14.3.
+
 ### Changed
 
 - The mutation tool flushes each progress line at once. Into a file or through a pipe (`| tee` in CI) Python held the lines back until a block was full, so a long run showed nothing until it ended.
