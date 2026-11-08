@@ -1,0 +1,90 @@
+# Reference automation (original, derived from a real one): when someone arrives home and the car is not plugged in
+# ten minutes later, remind them if a match (a calendar entry) is coming up soon and the battery is not full. The
+# people to remind come from a helper (empty means both). A second reminder follows after 45 minutes if the car is
+# still not plugged in. The calendar is asked for its events (a service that returns an answer), the next departure is
+# found in a loop with a namespace, and the notification services are called by name from a list.
+id: arrival_reminder
+alias: Remind to plug in the car after arriving
+mode: single
+triggers:
+  - trigger: state
+    entity_id:
+      - device_tracker.alice_phone
+      - device_tracker.bob_phone
+    to: home
+    id: arrival
+conditions:
+  # Only if the person who drove (the helper; empty means both) is the one who is home now.
+  - condition: template
+    value_template: >-
+      {% set driver = states('input_text.driver') %}
+      {% set alice = (driver == '' or 'Alice' in driver) and is_state('device_tracker.alice_phone', 'home') %}
+      {% set bob = (driver == '' or 'Bob' in driver) and is_state('device_tracker.bob_phone', 'home') %}
+      {{ alice or bob }}
+actions:
+  - delay: "00:10:00"
+  - alias: Only if the car is not plugged in
+    condition: state
+    entity_id: binary_sensor.car_plug
+    state: "off"
+  - action: calendar.get_events
+    target:
+      entity_id: calendar.home_games
+    data:
+      duration:
+        hours: 48
+    response_variable: cal
+  - variables:
+      soc: "{{ states('sensor.car_battery_level') | float(-1) }}"
+      lead: "{{ states('input_number.departure_lead_hours') | float(3.5) * 3600 }}"
+  - alias: The first departure that is still ahead
+    variables:
+      found: >-
+        {% set ns = namespace(departure=0, title='') %}
+        {% for event in cal['calendar.home_games'].events | default([]) %}
+        {% set start = as_timestamp(event.start) - lead %}
+        {% if ns.departure == 0 and start > as_timestamp(now()) %}{% set ns.departure = start %}{% set ns.title = event.summary %}{% endif %}
+        {% endfor %}
+        {{ ns.departure }}|{{ ns.title }}
+  - variables:
+      departure: "{{ found.split('|')[0] | float(0) }}"
+      game: "{{ found.split('|')[1] }}"
+  - alias: Only if the departure is within 36 hours and the battery is not full
+    condition: template
+    value_template: "{{ departure > 0 and (departure - as_timestamp(now())) <= 36 * 3600 and (soc < 0 or soc < 95) }}"
+  - variables:
+      targets: >-
+        {% set driver = states('input_text.driver') %}
+        {% set names = [] %}
+        {% if driver == '' or 'Alice' in driver %}{% set names = names + ['notify.alice_phone'] %}{% endif %}
+        {% if driver == '' or 'Bob' in driver %}{% set names = names + ['notify.bob_phone'] %}{% endif %}
+        {{ names }}
+  - alias: Remind the people
+    repeat:
+      for_each: "{{ targets }}"
+      sequence:
+        - action: "{{ repeat.item }}"
+          data:
+            title: Plug in the car
+            message: >-
+              The car is not plugged in. Departure for {{ game }} at {{ departure | timestamp_custom('%H:%M') }},
+              battery {{ soc | int if soc >= 0 else 'unknown' }} %.
+  - alias: Wait up to 45 minutes for the car to be plugged in
+    wait_template: "{{ is_state('binary_sensor.car_plug', 'on') }}"
+    timeout: "00:45:00"
+    continue_on_timeout: true
+  - alias: Second reminder if it is still not plugged in
+    if:
+      - condition: state
+        entity_id: binary_sensor.car_plug
+        state: "off"
+    then:
+      - repeat:
+          for_each:
+            - notify.alice_phone
+            - notify.bob_phone
+          sequence:
+            - action: "{{ repeat.item }}"
+              data:
+                title: Car still not plugged in
+                message: "Departure at {{ departure | timestamp_custom('%H:%M') }}. Please plug it in."

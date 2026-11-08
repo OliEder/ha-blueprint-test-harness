@@ -1,0 +1,97 @@
+# Reference automation (original, derived from a real one): make sure an electric car has enough range for the next
+# working day. A chain of `variables` corrects the (often late) vehicle report by the energy charged since, computes the
+# missing energy and sets the wallbox to a "next trip" mode with that energy and a departure time. Without vehicle
+# data it charges a fixed amount.
+id: range_charging
+alias: Charge enough range for the next workday
+mode: single
+triggers:
+  - trigger: time
+    at: "21:00:00"
+    id: evening
+  - trigger: state
+    entity_id: binary_sensor.car_connected
+    to: "on"
+    for: "00:10:00"
+    id: connected
+conditions:
+  - condition: state
+    entity_id: binary_sensor.car_connected
+    state: "on"
+  # The evening before a workday and the nights in between (Sunday to Thursday).
+  - condition: time
+    weekday: [sun, mon, tue, wed, thu]
+actions:
+  - variables:
+      battery_kwh: 58
+      departure_min: 390
+      fallback_wh: 20000
+      loss_factor: 1.1
+      min_range_km: 140
+      winter_factor: 1.2
+      is_winter: "{{ now().month in [11, 12, 1, 2, 3] }}"
+      soc_raw: "{{ states('sensor.car_battery_level') | float(-1) }}"
+      range_raw: "{{ states('sensor.car_range') | float(-1) }}"
+  - alias: Age of the vehicle data and the current charging
+    variables:
+      charging_kw: "{{ states('sensor.wallbox_power') | float(0) / 1000 }}"
+      report_age: "{{ states('sensor.car_report_age') | float(-1) }}"
+      session_kwh: "{{ states('sensor.wallbox_session_energy') | float(0) }}"
+  - alias: Energy charged since the vehicle report (only while charging)
+    variables:
+      charged_kwh: "{{ ([session_kwh, charging_kw * report_age / 60] | min) / loss_factor if (report_age > 0 and charging_kw > 1 and soc_raw > 0) else 0 }}"
+  - alias: Correct the charge level
+    variables:
+      soc: "{{ [soc_raw + charged_kwh / battery_kwh * 100, 100] | min if soc_raw > 0 else soc_raw }}"
+  - variables:
+      range_km: "{{ range_raw * soc / soc_raw if (soc_raw > 0 and range_raw > 0) else range_raw }}"
+  - variables:
+      data_ok: "{{ soc > 0 and range_km > 0 }}"
+      needed_km: "{{ min_range_km * (winter_factor if is_winter else 1.0) }}"
+  - variables:
+      kwh_per_km: "{{ (soc / 100 * battery_kwh) / range_km if data_ok else 0 }}"
+  - variables:
+      missing_kwh: "{{ ([needed_km - range_km, 0] | max) * kwh_per_km if data_ok else 0 }}"
+  - variables:
+      energy_wh: "{{ (((missing_kwh * 1000 * loss_factor) / 10) | round(0) | int) * 10 if data_ok else fallback_wh }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (not data_ok) or (energy_wh | int > 0) }}"
+        sequence:
+          - action: number.set_value
+            target:
+              entity_id: number.wallbox_energy_target
+            data:
+              value: "{{ energy_wh }}"
+          - action: number.set_value
+            target:
+              entity_id: number.wallbox_departure_time
+            data:
+              value: "{{ departure_min }}"
+          - action: select.select_option
+            target:
+              entity_id: select.wallbox_mode
+            data:
+              option: "5"
+          - action: notify.phone
+            data:
+              title: Charging planned for tomorrow
+              message: >-
+                {% if data_ok %}Battery {{ soc | int }} % / range {{ range_km | int }} km, needs {{ needed_km | int }} km.
+                Planned: {{ (energy_wh / 1000) | round(1) }} kWh by {{ '%02d:%02d' | format(departure_min // 60, departure_min % 60) }}.
+                {% if report_age >= 0 %}Vehicle data from {{ report_age | int }} min ago.{% endif %}
+                {% if charged_kwh > 0 %}Charged since then: about +{{ (soc - soc_raw) | round(1) }} %.{% endif %}
+                {% else %}Vehicle data unavailable. Safety charge: {{ (energy_wh / 1000) | round(1) }} kWh by {{ '%02d:%02d' | format(departure_min // 60, departure_min % 60) }}.{% endif %}
+    default:
+      # Enough range: leave the "next trip" mode (5) for the normal one (4), but touch no other mode.
+      - if:
+          - condition: state
+            entity_id: select.wallbox_mode
+            state: "5"
+        then:
+          - action: select.select_option
+            target:
+              entity_id: select.wallbox_mode
+            data:
+              option: "4"

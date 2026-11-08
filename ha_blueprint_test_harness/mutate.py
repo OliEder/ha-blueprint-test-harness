@@ -22,6 +22,7 @@ How to read this file, top to bottom:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import copy
 import dataclasses
 import os
@@ -30,6 +31,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -374,8 +376,10 @@ def _run(command: list[str], env: dict[str, str], timeout: float) -> tuple[int, 
 # The main routine. Two safety checks first: the tests must pass on the untouched blueprint, and also on an
 # unchanged copy that was read and written back by this tool (otherwise the tool itself would be the cause
 # of failures). Then each mutant is written to a file, the tests run against it, and the outcome is judged.
-def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120, pick: str | None = None,
+def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120, pick: str | None = None, jobs: int = 1,
                  workdir: pathlib.Path | None = None, log: Callable[[str], None] = print) -> Report:
+    if jobs < 1:
+        raise SystemExit(f"--jobs must be at least 1 (got {jobs}).")
     blueprint = blueprint.resolve()
     document = load(blueprint.read_text(encoding="utf-8"))
     # A blueprint or one automation is mutated as it is; from a list (automations.yaml) only the picked entry.
@@ -403,15 +407,23 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
             raise SystemExit("The tests fail on the unmodified blueprint after a YAML round trip, so mutants "
                              f"cannot be judged (exit {code}).\n{output[-2000:]}")
 
-        log(f"{len(mutants)} mutants of {blueprint.name}")
-        results = []
-        for mutant in mutants:
+        log(f"{len(mutants)} mutants of {blueprint.name}" + (f" ({jobs} at a time)" if jobs > 1 else ""))
+        log_lock = threading.Lock()
+
+        # Tests one mutant: writes its file, runs the tests against it and judges the outcome. Mutants do not depend on
+        # each other (each run is its own process with its own file), so several can run at the same time.
+        def judge(mutant: Mutant) -> Result:
             path = folder / f"{mutant.id}.yaml"
             path.write_text(dump(embed(document, index, mutant.mutated(entry))), encoding="utf-8")
             code, output, timed_out = _run(command, {**env, "HA_BLUEPRINT_TEST_HARNESS_MUTANT": str(path)}, timeout)
             outcome = classify(code, output, timed_out)
-            results.append(Result(mutant, outcome))
-            log(f"{outcome:9s} {mutant.id}  {mutant.description}")
+            with log_lock:
+                log(f"{outcome:9s} {mutant.id}  {mutant.description}")
+            return Result(mutant, outcome)
+
+        # map() keeps the order of the mutants, whatever order they finish in.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+            results = list(pool.map(judge, mutants))
     return Report(results)
 
 
@@ -433,13 +445,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("blueprint", type=pathlib.Path, help="a blueprint file, or a file with an automation written directly")
     parser.add_argument("--pick", help="for a file with several automations: the id or alias of the one to mutate")
     parser.add_argument("--timeout", type=float, default=120, help="seconds per test run (default 120)")
+    parser.add_argument("--jobs", type=int, default=1, help="run this many mutants at the same time (default 1); the tests must not share files")
     parser.add_argument("--workdir", type=pathlib.Path, help="keep the mutant files here")
     parser.add_argument("--fail-under", type=float, default=0.0, help="exit 1 if the score is lower (0 to 100)")
     own, command = split_command(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(own)
     command = command or [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
 
-    report = run_mutation(args.blueprint, command, timeout=args.timeout, pick=args.pick, workdir=args.workdir)
+    report = run_mutation(args.blueprint, command, timeout=args.timeout, pick=args.pick, jobs=args.jobs, workdir=args.workdir)
     survivors = [result for result in report.results if result.outcome == "survived"]
     print()
     print(f"killed {report.count('killed')}, survived {report.count('survived')}, "

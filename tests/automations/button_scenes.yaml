@@ -1,0 +1,59 @@
+# Reference automation (original, derived from a real one): one wall button that is an event entity does three things
+# depending on the kind of press: one press toggles the hall spots, two presses toggle the other hall lights at full
+# brightness, three presses switch off whole areas and the TV there. Each kind of press is its own trigger with an id,
+# and each trigger lists the attribute values it may come from, so that only a real change to that press counts.
+id: button_scenes
+alias: Hall button scenes
+mode: single
+triggers:
+  - trigger: state
+    entity_id: event.hall_button
+    attribute: event_type
+    to: single_push
+    from: [double_push, triple_push, long_push, btn_down, btn_up]
+    id: single
+  - trigger: state
+    entity_id: event.hall_button
+    attribute: event_type
+    to: double_push
+    from: [single_push, triple_push, long_push, btn_down, btn_up]
+    id: double
+  - trigger: state
+    entity_id: event.hall_button
+    attribute: event_type
+    to: triple_push
+    from: [single_push, double_push, long_push, btn_down, btn_up]
+    id: triple
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: single
+        sequence:
+          - action: light.toggle
+            target:
+              entity_id: [light.hall_spot_1, light.hall_spot_2]
+            data:
+              transition: 1
+      - conditions:
+          - condition: trigger
+            id: double
+        sequence:
+          - action: light.toggle
+            target:
+              entity_id: [light.hall_ceiling, light.hall_strip]
+            data:
+              transition: 1
+              brightness_pct: 100
+      - conditions:
+          - condition: trigger
+            id: triple
+        sequence:
+          - action: light.turn_off
+            target:
+              area_id: [living_room, kitchen, bathroom]
+            data:
+              transition: 1
+          - action: media_player.turn_off
+            target:
+              area_id: living_room

@@ -117,3 +117,12 @@ async def test_a_service_that_is_both_plain_and_with_a_response_is_an_error(blue
     # Asking for both is a mistake in the test; say so instead of picking one.
     with pytest.raises(ValueError, match="weather.get_forecasts"):
         await blueprint_env.start_automation(FORECAST, services=["weather.get_forecasts"], responses={"weather.get_forecasts": {}})
+
+
+async def test_the_state_of_another_automation_can_be_set(blueprint_env):
+    # Automations often read the state or `last_triggered` of other automations. Such a state is part of the scenario
+    # and must not be mistaken for a second automation under test.
+    states = {**STATES, "automation.other": ("on", {"current": 0})}
+    await blueprint_env.start_automation(LAMP_ON, states=states, services=["light.turn_on"])
+    await blueprint_env.set_state("binary_sensor.door", "on")
+    assert len(blueprint_env.calls_to("light.turn_on")) == 1

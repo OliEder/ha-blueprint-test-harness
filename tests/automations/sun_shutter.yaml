@@ -1,0 +1,62 @@
+# Reference automation (original, derived from a real one): a shutter that follows the sun. On a hot day, when the sun
+# stands on the window side and rises above 15 degrees, a shutter that is open wider than 30 % is moved to 30 %. When the
+# sun has left the window side, an open shutter is opened fully. Several trigger ids select the branch of one `choose`.
+id: sun_shutter
+alias: Shutter follows the sun
+mode: single
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.sun_elevation
+    above: 15
+    id: close_shutter
+  - trigger: numeric_state
+    entity_id: sensor.sun_azimuth
+    above: 100
+    below: 340
+    id: open_shutter
+actions:
+  - choose:
+      - alias: Hot day, sun on the window side, shutter open wider than 30 %
+        conditions:
+          - condition: numeric_state
+            entity_id: weather.home
+            attribute: temperature
+            above: 23
+          - condition: or
+            conditions:
+              - condition: numeric_state
+                entity_id: sun.sun
+                attribute: azimuth
+                above: 340
+                below: 360
+              - condition: numeric_state
+                entity_id: sun.sun
+                attribute: azimuth
+                above: 0
+                below: 100
+          - condition: numeric_state
+            entity_id: cover.shutter
+            attribute: current_position
+            above: 30
+        sequence:
+          - action: cover.set_cover_position
+            target:
+              entity_id: cover.shutter
+            data:
+              position: 30
+      - alias: The sun has left the window side, the shutter is open
+        conditions:
+          - condition: trigger
+            id: open_shutter
+          - condition: state
+            entity_id: cover.shutter
+            state: open
+          - condition: numeric_state
+            entity_id: sensor.sun_elevation
+            above: 15
+        sequence:
+          - action: cover.open_cover
+            target:
+              entity_id: cover.shutter
+    default:
+      - stop: No trigger id matched or the conditions are not met

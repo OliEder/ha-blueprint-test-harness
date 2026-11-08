@@ -248,12 +248,14 @@ class BlueprintEnv:
         for name, answer in (responses or {}).items():
             self._mock_service(name, (effects or {}).get(name), answer, with_response=True)
 
+        # States the test set for other automations (a scenario may read their state) were there before the setup.
+        before = set(self.hass.states.async_entity_ids("automation"))
         if not await async_setup_component(self.hass, "automation", {"automation": [config]}):
             raise BlueprintLoadError("the automation component did not set up")
         await self.settle()
-        # Home Assistant logs a bad automation and carries on, so check that exactly one automation exists
+        # Home Assistant logs a bad automation and carries on, so check that exactly one new automation exists
         # and that it is not "unavailable".
-        entity_ids = self.hass.states.async_entity_ids("automation")
+        entity_ids = [entity_id for entity_id in self.hass.states.async_entity_ids("automation") if entity_id not in before]
         if len(entity_ids) != 1 or self.hass.states.get(entity_ids[0]).state == "unavailable":
             raise BlueprintLoadError(f"the automation did not come up as a working automation: {entity_ids}")
 
