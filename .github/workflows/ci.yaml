@@ -95,11 +95,11 @@ jobs:
       - name: Mutation runs on the reference automations
         if: always()
         run: |
-          # Each automation has its own floor: the score measured when it was written (equivalent mutants count as
-          # survivors, see memory/equivalent-mutants.md). A lower score means a test got weaker.
+          # Each automation has its own floor: the score measured when it was written, rounded DOWN (44 of 45 is 97.8 %, so
+          # the floor is 97). Equivalent mutants count as survivors (memory/equivalent-mutants.md). A lower score means a test got weaker.
           set +e
           failed=0
-          for entry in humidity_warning:93 range_charging:92 outage_lock:100 sun_shutter:88 arrival_reminder:98 button_scenes:94; do
+          for entry in humidity_warning:93 range_charging:92 outage_lock:100 sun_shutter:88 arrival_reminder:97 button_scenes:93; do
             name="${entry%%:*}"; floor="${entry##*:}"
             python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --fail-under "$floor" -- \
               python -m pytest -q -x -p no:cacheprovider "tests/test_$name.py" | tee "mutation-$name.txt"
