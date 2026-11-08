@@ -25,7 +25,7 @@ Do not edit your tests or the blueprint while it runs: each mutant is tested wit
 
 Before it breaks anything the tool checks that your tests pass on the original and on an unchanged copy that it read and wrote back itself. If either fails it stops and says so: fix the tests first.
 
-The tool runs your tests many times (once per mutant) and prints the result only at the end, so a run takes minutes without any output: with 73 mutants and 56 tests about 3 minutes (measured by a test project on 2026-11-07). Run it in the background in CI. The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
+The tool runs your tests many times (once per mutant) and prints one line per mutant as soon as it is judged (flushed at once, also into a file or through `| tee`; before 0.4.1 a pipe held the lines back until the end, so a run seemed silent for minutes). A run takes minutes: with 73 mutants and 56 tests about 3 minutes (measured by a test project on 2026-11-07). Run it in the background in CI. The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
 
 ## Automations written directly
 
@@ -114,4 +114,4 @@ Add the command to your workflow with `--fail-under` (see [Configuring your proj
 
 The tool passes your environment on to the test command, minus its own `HA_BLUEPRINT_TEST_HARNESS_*` variables. Do not run it with secrets in the environment on a blueprint or tests you do not trust ([`SECURITY.md`](../SECURITY.md)).
 
-Without a command after `--` the tool runs `pytest` in the current directory, which loads that directory's `conftest.py`; run it only on files you have read. Give `--workdir` an empty folder: the tool stops if it finds `control.yaml` or `M001.yaml`, ... from an earlier run there, and it never writes through a link. The tool refuses a file with YAML aliases (`*name`, they are written out in full for every mutant and can make a run last minutes) and a file above 1 MB; write the values out instead.
+Without a command after `--` the tool runs `pytest` in the current directory, which loads that directory's `conftest.py`; run it only on files you have read. Give `--workdir` an empty folder: the tool stops if it finds `control.yaml` or `M001.yaml`, ... from an earlier run there, and it never writes through a link. YAML aliases (`*name`) are written out in full for every mutant, so the tool refuses a file whose aliases expand to more than 20 000 values (a few nested aliases can make a run last minutes) and a file above 1 MB; a list that is used in a few places is fine, and each place is mutated on its own.

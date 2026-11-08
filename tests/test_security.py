@@ -4,6 +4,7 @@ hostile input. Each test names the finding it covers."""
 import os
 import pathlib
 import sys
+import time
 
 import pytest
 
@@ -72,17 +73,32 @@ async def test_an_automation_file_cannot_read_files_either(blueprint_env, tmp_pa
     assert "must-not-appear" not in str(error.value)
 
 
-# F2: aliases make the dumped YAML grow without limit; the mutation tool refuses them and very large input.
-def test_yaml_aliases_are_refused_by_the_mutation_tool():
-    text = "a: &x [1, 2]\nb: *x\n"
-    with pytest.raises(ValueError, match="alias"):
-        mutate.load(text)
+# F2: nested aliases make the dumped YAML grow without limit. Aliases themselves are fine (real blueprints use them, for
+# example one `options: &positions` list used three times), so what an alias expands to is limited, not the alias.
+def test_a_few_aliases_are_accepted_and_the_copies_are_independent():
+    document = mutate.load("a: &x [1, 2]\nb: *x\n")
+    assert document == {"a": [1, 2], "b": [1, 2]} and document["a"] is not document["b"]
 
 
-def test_a_nest_of_aliases_is_refused_at_once_not_after_minutes():
-    text = "l0: &a0 [x, x]\n" + "".join(f"l{i}: &a{i} [*a{i - 1}, *a{i - 1}]\n" for i in range(1, 12))
-    with pytest.raises(ValueError, match="alias"):
+def test_a_mutation_changes_one_copy_of_an_alias_not_all(tmp_path):
+    document = mutate.load("a: &x\n  - {trigger: state, entity_id: a.b, to: 'on'}\nb: *x\n")
+    mutant = next(m for m in mutate.find_mutants(document) if ".a" in m.description or m.description.startswith("a["))
+    changed = mutate.load(mutant.build(document))
+    assert changed["b"] == document["b"] and changed["a"] != document["a"]
+
+
+def test_a_nest_of_aliases_that_expands_too_far_is_refused_at_once():
+    text = "l0: &a0 [x, x]\n" + "".join(f"l{i}: &a{i} [*a{i - 1}, *a{i - 1}]\n" for i in range(1, 30))
+    started = time.monotonic()
+    with pytest.raises(ValueError, match="expands to more than"):
         mutate.load(text)
+    assert time.monotonic() - started < 2
+
+
+def test_the_real_aqara_shape_is_accepted():
+    # An anchor on a list of options and three references to it, as in a real blueprint.
+    text = "o: &positions {options: [a, b, c]}\nx: {options: *positions}\ny: {options: *positions}\nz: {options: *positions}\n"
+    assert mutate.load(text)["z"] == {"options": {"options": ["a", "b", "c"]}}
 
 
 def test_very_large_input_is_refused():
@@ -90,10 +106,10 @@ def test_very_large_input_is_refused():
         mutate.load("a: " + "x" * 2_000_000 + "\n")
 
 
-def test_a_run_with_an_alias_stops_with_a_clear_message(tmp_path):
+def test_a_run_with_an_alias_bomb_stops_with_a_clear_message(tmp_path):
     path = tmp_path / "a.yaml"
-    path.write_text("triggers: &t [{trigger: state, entity_id: a.b}]\nactions: []\nalso: *t\n", encoding="utf-8")
-    with pytest.raises(SystemExit, match="alias"):
+    path.write_text("l0: &a0 [x, x]\n" + "".join(f"l{i}: &a{i} [*a{i - 1}, *a{i - 1}]\n" for i in range(1, 30)), encoding="utf-8")
+    with pytest.raises(SystemExit, match="expands to more than"):
         mutate.run_mutation(path, [sys.executable, "-c", "pass"], workdir=tmp_path / "work", log=lambda _: None)
 
 

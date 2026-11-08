@@ -84,21 +84,41 @@ class _Dumper(yaml.SafeDumper):
 _Dumper.add_representer(Tagged, lambda dumper, tagged: dumper.represent_scalar(f"!{tagged.tag}", tagged.value))
 
 
-# The largest file the tool reads, and no YAML aliases: an alias (*x) is written out in full when a mutant is dumped, so a
-# few nested aliases make the dump and the search for mutants grow without limit (a 260-byte file ran for more than two
-# minutes before the first test). Write the values out instead of using anchors.
+# The largest file the tool reads, and the most values an alias may expand to. An alias (*x) is written out in full when
+# a mutant is dumped, so a few nested aliases make the dump and the search for mutants grow without limit (a 260-byte
+# file ran for more than two minutes before the first test). Aliases themselves are fine: real blueprints use them (the
+# Aqara switch has 1040 values after expansion), so the limit is on the expanded size, about twenty times that.
 _MAX_BYTES = 1_000_000
+_MAX_VALUES = 20_000
 
 
-# Reads blueprint text into Python lists, dicts and Tagged objects. Raises ValueError for input that is too large or that
-# uses aliases.
+# Counts the values of a document, a shared one every time it is reached, and stops counting above ``limit`` (so an alias
+# bomb does not take long to refuse).
+def _expanded_size(document: Any, limit: int) -> int:
+    count, stack = 0, [document]
+    while stack and count <= limit:
+        node = stack.pop()
+        count += 1
+        if isinstance(node, dict):
+            stack.extend(node.keys())
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+    return count
+
+
+# Reads blueprint text into Python lists, dicts and Tagged objects. Raises ValueError for input that is too large or
+# whose aliases expand too far. Shared nodes are made independent (the text is dumped in full and read again), so that a
+# mutation changes one place and not every place the same alias points to.
 def load(text: str) -> Any:
     if len(text.encode("utf-8")) > _MAX_BYTES:
         raise ValueError(f"the file is too large for the mutation tool (more than {_MAX_BYTES} bytes)")
-    for event in yaml.parse(text, Loader=_Loader):
-        if isinstance(event, yaml.AliasEvent):
-            raise ValueError("the file uses a YAML alias (*name); the mutation tool does not support aliases, write the values out")
-    return yaml.load(text, Loader=_Loader)
+    document = yaml.load(text, Loader=_Loader)
+    if any(isinstance(event, yaml.AliasEvent) for event in yaml.parse(text, Loader=_Loader)):
+        if _expanded_size(document, _MAX_VALUES) > _MAX_VALUES:
+            raise ValueError(f"the file expands to more than {_MAX_VALUES} values through YAML aliases (*name); write some of them out")
+        document = yaml.load(dump(document), Loader=_Loader)
+    return document
 
 
 # Writes such a structure back to YAML text, keeping the original key order.
@@ -403,11 +423,17 @@ def _run(command: list[str], env: dict[str, str], timeout: float) -> tuple[int, 
         return -1, str(expired.stdout or ""), True
 
 
+# Prints one progress line and flushes it. Without the flush, output that goes to a file or through a pipe (`| tee` in CI)
+# is held back until a block is full, so a long run showed nothing until it ended.
+def _progress(line: str) -> None:
+    print(line, flush=True)
+
+
 # The main routine. Two safety checks first: the tests must pass on the untouched blueprint, and also on an
 # unchanged copy that was read and written back by this tool (otherwise the tool itself would be the cause
 # of failures). Then each mutant is written to a file, the tests run against it, and the outcome is judged.
 def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120, pick: str | None = None, jobs: int = 1,
-                 workdir: pathlib.Path | None = None, log: Callable[[str], None] = print) -> Report:
+                 workdir: pathlib.Path | None = None, log: Callable[[str], None] = _progress) -> Report:
     if jobs < 1:
         raise SystemExit(f"--jobs must be at least 1 (got {jobs}).")
     blueprint = blueprint.resolve()

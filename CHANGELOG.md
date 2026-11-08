@@ -4,6 +4,14 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+### Changed
+
+- The mutation tool flushes each progress line at once. Into a file or through a pipe (`| tee` in CI) Python held the lines back until a block was full, so a long run showed nothing until it ended.
+
+### Fixed
+
+- The mutation tool works again on files that use YAML aliases. 0.4.0 refused every file with an alias (`*name`), including real blueprints, such as one with a list of options used in three places. Now an alias is accepted, what it expands to is limited (20 000 values, the real blueprint has about 1 000), and the places that share an alias are made independent so that a mutation changes only one of them. (Before 0.4.0 one mutation changed every place that shared an alias, which falsified the result.)
+
 ## [0.4.0] - 2026-11-08
 
 Pre-1.0: new public names are the reason for a MINOR version.
