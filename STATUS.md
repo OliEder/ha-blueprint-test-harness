@@ -1,10 +1,10 @@
 # Status
 
-A short index. Where things are, which files a task needs, and where the current numbers, open items and commands live. Read the map, then open only what your task needs. Last updated 2026-11-07.
+A short index. Where things are, which files a task needs, and where the current numbers, open items and commands live. Read the map, then open only what your task needs. Last updated 2026-11-08.
 
 ## Right now
 
-- Pre-release for automation blueprints. The repository is public and CI on GitHub is green. Release 0.1.0 is prepared on the local branch `release/0.1.0` and waits for the maintainer (see `status/open.md`).
+- Pre-1.0 for automation blueprints. The repository is public and CI on GitHub is green. Release 0.2.0 is published (it supports `pytest-homeassistant` as well as the older `pytest-homeassistant-custom-component`); `main` carries the development version 0.3.0.dev0 once pull request 7 is merged (see `status/open.md`).
 - Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
 - Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
 
