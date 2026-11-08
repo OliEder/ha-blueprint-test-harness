@@ -4,6 +4,12 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-08
+
+Pre-1.0: new public names are the reason for a MINOR version.
+
+Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 3.14.3 (macOS) and Ubuntu (CI); also Home Assistant 2026.10.4 with `pytest-homeassistant-custom-component` 0.13.375, Python 3.14.3.
+
 ### Added
 
 - `BlueprintEnv.render(template, variables=None)`: evaluates a template against the simulated states and returns the value with its real type.
