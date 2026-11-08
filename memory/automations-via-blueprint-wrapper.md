@@ -1,9 +1,9 @@
 ---
 name: automations-via-blueprint-wrapper
-description: A directly written automation can already be tested today by putting a blueprint header on its configuration; what is missing is a proper API (milestone M6).
+description: A directly written automation can already be tested today by putting a blueprint header on its configuration; what is missing is a proper API (M6).
 metadata:
   type: observation
-  applies_to: [ROADMAP.md, ha_blueprint_test_harness/env.py]
+  applies_to: [ROADMAP.md, roadmap/M6-direct-automations.md, ha_blueprint_test_harness/env.py]
   checked: 2026-11-08
 ---
 
