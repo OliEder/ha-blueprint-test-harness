@@ -34,7 +34,7 @@ When in doubt, raise the larger number.
 
 The harness version is independent of Home Assistant's. Home Assistant releases every month, with patch releases in between, so every release states in the changelog what it was tested with, on a line that starts with `Tested with:` (Home Assistant version, test-package version, Python version). Until the version matrix exists (milestone M4), one generation is tested; other versions may work and are unverified.
 
-The package does not pin `pytest-homeassistant-custom-component`, so that it does not clash with a pin in a project that uses it. The combination that is tested is the one in `requirements-dev.txt`.
+The package depends on neither `pytest-homeassistant` nor `pytest-homeassistant-custom-component` (they must not be installed together, and it must not clash with a pin in a project that uses one). Both are tested in CI: `requirements-dev.txt` (the first) and `requirements-dev-custom-component.txt` (the second). The `Tested with:` line names both.
 
 ## Where the version lives
 

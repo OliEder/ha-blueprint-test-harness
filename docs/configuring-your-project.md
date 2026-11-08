@@ -25,10 +25,12 @@ Nothing forces this layout. The only rule is that the path you give to `start()`
 ```ini
 [pytest]
 asyncio_mode = auto
+asyncio_default_fixture_loop_scope = function
+addopts = -p no:respx
 testpaths = tests
 ```
 
-`asyncio_mode = auto` lets you write `async def test_...` without a decorator. Without it every test errors before it runs.
+`asyncio_mode = auto` lets you write `async def test_...` without a decorator. Without it every test errors before it runs. `-p no:respx` is needed with `pytest-homeassistant`, which fails at startup otherwise; with the older package it does no harm.
 
 `conftest.py`
 
@@ -65,14 +67,14 @@ The blueprint can be one of your own, one you downloaded, or one that ships with
 
 ## Pin the versions
 
-Home Assistant releases every month and the test package follows it. The harness does not pin the test package (so that it does not clash with a pin of yours), which means a fresh install gets the newest one. For repeatable runs put the combination you tested in `requirements-dev.txt`:
+Home Assistant releases every month and the test package follows it. The harness does not install a test package (there are two, and a pin of yours must not clash), so you choose and pin it. For repeatable runs put the combination you tested in `requirements-dev.txt`:
 
 ```text
 ha-blueprint-test-harness @ https://github.com/OliEder/ha-blueprint-test-harness/releases/download/v0.1.0/ha_blueprint_test_harness-0.1.0-py3-none-any.whl
-pytest-homeassistant-custom-component==0.13.375
+pytest-homeassistant==2026.11.0
 ```
 
-`0.13.375` is the version this harness was tested with (Home Assistant 2026.10.4). The wheel URL above is the release asset of 0.1.0 (published on 2026-11-07; the line was checked to install it into a fresh environment). For a newer version change the version in the URL. To follow the main branch use the `git+https://...` source from [Getting started](getting-started.md#2-install).
+`2026.11.0` is the version of `pytest-homeassistant` this harness was tested with (Home Assistant 2026.11.0, Python 3.14.2 or newer). The older `pytest-homeassistant-custom-component==0.13.375` (Home Assistant 2026.10.4) was tested as well; use one of the two, never both. The wheel URL above is the release asset of 0.1.0 (published on 2026-11-07; the line was checked to install it into a fresh environment). For a newer version change the version in the URL. To follow the main branch use the `git+https://...` source from [Getting started](getting-started.md#2-install).
 
 When you move to a newer test package, run your tests and the mutation tool again. The harness uses Home Assistant internals in several places, so a new Home Assistant version can break it; if it does, [open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues).
 

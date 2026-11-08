@@ -6,7 +6,7 @@ At the end you have run a test against Home Assistant's own `motion_light` bluep
 
 - **Python 3.14.** The package declares `requires-python >= 3.14`, because the Home Assistant version it is tested with needs it.
 - **macOS or Linux.** Tested on macOS and on Ubuntu (GitHub Actions). Windows: not tried.
-- About 700 MB of disk for the virtual environment (660 MB measured on macOS on 2026-11-07 with `du -sh .venv`): installing the harness installs Home Assistant's test package and with it Home Assistant itself.
+- About 700 MB of disk for the virtual environment (660 MB measured on macOS on 2026-11-07 with `du -sh .venv`): installing Home Assistant's test package (next step) brings Home Assistant itself.
 
 ## 2. Install
 
@@ -27,7 +27,14 @@ Then install the harness. Pick one:
 
 It is **not on PyPI yet.**
 
-The package does not pin Home Assistant's test package, so the newest one is installed. Pin it in your own project if you want repeatable runs, see [Configuring your project](configuring-your-project.md#pin-the-versions).
+The harness does not install Home Assistant's test package itself, because there are two and they must not be installed together (the README of `pytest-homeassistant` says so). Install one of them into the same environment:
+
+| Package | Command | Notes |
+| --- | --- | --- |
+| `pytest-homeassistant` | `uv pip install --python .venv/bin/python pytest-homeassistant` | Recommended. Maintained in Home Assistant core; needs Python 3.14.2 or newer. |
+| `pytest-homeassistant-custom-component` | `uv pip install --python .venv/bin/python pytest-homeassistant-custom-component` | The older package, from one maintainer. Use it if you already depend on it. |
+
+Without either, importing the harness fails with "No Home Assistant test package found". Pin the package in your own project if you want repeatable runs, see [Configuring your project](configuring-your-project.md#pin-the-versions).
 
 ## 3. Two configuration files
 
@@ -38,7 +45,11 @@ In the folder from which you run `pytest`:
 ```ini
 [pytest]
 asyncio_mode = auto
+asyncio_default_fixture_loop_scope = function
+addopts = -p no:respx
 ```
+
+`-p no:respx` is needed with `pytest-homeassistant` (without it pytest stops at startup with `httpx was already imported`); with the older package it does no harm.
 
 `conftest.py`
 
@@ -47,7 +58,7 @@ asyncio_mode = auto
 pytest_plugins = ["ha_blueprint_test_harness.pytest_plugin"]
 ```
 
-Both are needed. Why, and what happens without them, is in [Troubleshooting](troubleshooting.md). If a later test of a blueprint with a `time_pattern` trigger fails with "Lingering timer after test", add the fixture shown under [Configuring your project](configuring-your-project.md#the-two-files-that-must-exist).
+All of it is needed. Why, and what happens without them, is in [Troubleshooting](troubleshooting.md). If a later test of a blueprint with a `time_pattern` trigger fails with "Lingering timer after test", add the fixture shown under [Configuring your project](configuring-your-project.md#the-two-files-that-must-exist).
 
 ## 4. Your first test
 

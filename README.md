@@ -18,7 +18,7 @@ async def test_light_turns_off_after_the_wait(blueprint_env):
 
 Everything needed to use it is in [`docs/`](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/index.md): [getting started](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/getting-started.md) (install, two configuration files, a first test), [configuring your project](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/configuring-your-project.md) (layout, pinned versions, GitHub Actions), [writing tests](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/writing-tests.md) (the API and the common patterns), [mutation testing](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/mutation-testing.md) and [troubleshooting](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/troubleshooting.md).
 
-Needs Python 3.14. Install the wheel from the [latest release](https://github.com/OliEder/ha-blueprint-test-harness/releases/latest), or follow the main branch with `pip install "git+https://github.com/OliEder/ha-blueprint-test-harness"`. It is not on PyPI yet.
+Needs Python 3.14 and one of Home Assistant's two test packages (`pytest-homeassistant`, recommended, or `pytest-homeassistant-custom-component`); [Getting started](https://github.com/OliEder/ha-blueprint-test-harness/blob/main/docs/getting-started.md#2-install) shows the command. Install the wheel from the [latest release](https://github.com/OliEder/ha-blueprint-test-harness/releases/latest), or follow the main branch with `pip install "git+https://github.com/OliEder/ha-blueprint-test-harness"`. It is not on PyPI yet.
 
 ## What is real, what is not
 
@@ -41,7 +41,7 @@ uv pip install --python .venv/bin/python -r requirements-dev.txt
 .venv/bin/python -m pytest
 ```
 
-`requirements-dev.txt` pins `pytest-homeassistant-custom-component==0.13.375` (Home Assistant 2026.10.4). The helpers it uses are internal to Home Assistant and can change between versions.
+`requirements-dev.txt` pins `pytest-homeassistant==2026.11.0` (Home Assistant 2026.11.0); `requirements-dev-custom-component.txt` pins `pytest-homeassistant-custom-component==0.13.375` (Home Assistant 2026.10.4). CI runs the tests with both. The helpers they use are internal to Home Assistant and can change between versions.
 
 ## CI
 
@@ -76,4 +76,4 @@ Apache License 2.0, see [`LICENSE`](https://github.com/OliEder/ha-blueprint-test
 ## Prior work and credits
 
 - **MrCodeLabs.** This project started from the blueprint tests that [MrCodeLabs](https://github.com/MrCodeLabs) wrote for the go-eCharger PV blueprint of the [ha-goecharger-api2](https://github.com/marq24/ha-goecharger-api2) integration (`tests/blueprints/` on the branch `feat/pv-freshness-confirmation` of [his fork](https://github.com/MrCodeLabs/ha-goecharger-api2), Apache-2.0). His idea, to run a blueprint's real templates and actions against synthetic states and assert on the service calls, and several of his first scenarios (a daylight value, unusable measurements, a night window, routing to a chosen target) shaped this project. His harness rebuilds parts of Home Assistant in a Jinja sandbox; this project runs the blueprint in a real Home Assistant and adds time control, a mutation tool and CI. The code in this repository was written from scratch; nothing was copied from his files.
-- **Home Assistant.** Loading a blueprint with `use_blueprint` and counting mocked service calls follows the pattern of Home Assistant's own [`tests/components/automation/test_blueprint.py`](https://github.com/home-assistant/core/blob/dev/tests/components/automation/test_blueprint.py). The harness is built on [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) (MIT).
+- **Home Assistant.** Loading a blueprint with `use_blueprint` and counting mocked service calls follows the pattern of Home Assistant's own [`tests/components/automation/test_blueprint.py`](https://github.com/home-assistant/core/blob/dev/tests/components/automation/test_blueprint.py). The harness is built on [`pytest-homeassistant`](https://pypi.org/project/pytest-homeassistant/) (maintained in Home Assistant core) and also works with [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) (MIT).

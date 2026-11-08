@@ -4,6 +4,13 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+### Changed
+
+- The harness works with `pytest-homeassistant` (maintained in Home Assistant core, tested with 2026.11.0) as well as with `pytest-homeassistant-custom-component`; the import in `env.py` uses the first and falls back to the second. If neither is installed, importing the harness raises an `ImportError` that says what to install.
+- **The harness no longer depends on `pytest-homeassistant-custom-component`.** The two packages must not be installed together, so a hard dependency on one would force the other out. Install a test package yourself ([Getting started](docs/getting-started.md#2-install)). Projects that installed the harness for its dependency must add the package to their requirements.
+- `pytest.ini` examples now contain `asyncio_default_fixture_loop_scope = function` and `addopts = -p no:respx`. The second is required with `pytest-homeassistant`.
+- CI runs the tests with both packages (`tests` and `tests-custom-component`); `requirements-dev.txt` now pins `pytest-homeassistant==2026.11.0`, the old pin moved to `requirements-dev-custom-component.txt`.
+
 ## [0.1.0] - 2026-11-07
 
 First release. Pre-1.0: the API may still change.

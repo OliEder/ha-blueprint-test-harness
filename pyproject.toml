@@ -10,7 +10,8 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-dependencies = ["pytest-homeassistant-custom-component", "pyyaml"]
+# The Home Assistant test package is not a dependency: there are two, and they must not be installed together.
+dependencies = ["pyyaml"]
 keywords = ["home-assistant", "blueprint", "testing", "pytest", "mutation-testing"]
 classifiers = [
     "Framework :: Pytest",

@@ -50,7 +50,7 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | M7 | Branch coverage from Home Assistant's automation traces (which `choose` branches and conditions ran); builds on M11 | idea | — |
 | M8 | Real service schemas for core domains (load the real `light`, `notify`, ... instead of a recorder), so that a changed parameter is noticed | idea | — |
 | M9 | Distribution beyond the first release: a machine-readable report (JSON), a reusable GitHub Action for other repositories, publishing to PyPI | idea | — |
-| M10 | Integrations and other extensions: config flows, coordinators, entities. Builds on `pytest-homeassistant-custom-component`; adds the parts it lacks (for example mutation testing of Python code, scenario helpers) | direction | — |
+| M10 | Integrations and other extensions: config flows, coordinators, entities. Builds on `pytest-homeassistant`; adds the parts it lacks (for example mutation testing of Python code, scenario helpers) | direction | — |
 
 M3 comes before M4 on purpose: a matrix over several versions is only worth running when a version change breaks one known place. M11 stands before M5 on purpose: it answers a need found on a real blueprint, and M7 (branch coverage) builds on its trace access. The ID is M11 because IDs are never renumbered.
 
@@ -62,7 +62,7 @@ M3 comes before M4 on purpose: a matrix over several versions is only worth runn
 
 ## Non-goals
 
-- Replacing `pytest-homeassistant-custom-component`. This project builds on it.
+- Replacing `pytest-homeassistant` or `pytest-homeassistant-custom-component`. This project builds on them.
 - Proving anything about real devices, or about the behaviour of an integration behind a mocked service.
 - Depending on an AI agent. Humans and CI use the harness the same way.
 

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Each entry is an error or symptom with its cause and fix. They were reproduced in a fresh environment on 2026-11-07, except the mutation-tool messages and the `error` outcome, which are taken from the tool's own code. If yours is not here, [open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues) with the output and the versions (`pip show homeassistant pytest-homeassistant-custom-component ha-blueprint-test-harness`).
+Each entry is an error or symptom with its cause and fix. They were reproduced in a fresh environment on 2026-11-07, except the mutation-tool messages and the `error` outcome, which are taken from the tool's own code. If yours is not here, [open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues) with the output and the versions (`pip list | grep -i "homeassistant\|ha-blueprint"`).
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
@@ -18,7 +18,10 @@ Each entry is an error or symptom with its cause and fix. They were reproduced i
 | Mutation tool: `The tests fail on the unmodified blueprint after a YAML round trip` | The tool wrote the blueprint back differently in a way your tests notice | [Open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues) with the blueprint (without private entity names) |
 | Mutation tool: `Cannot run the test command ...` (exit 1) | The program after `--` cannot be started, for example a wrong path to Python | Run the exact command after `--` by hand |
 | Mutation tool: `error` outcome for single mutants | The tests passed on the original, but the test run exited with a code of 2 or more on a mutant (pytest itself broke, for example a timeout of the machine) | Keep the mutant files with `--workdir DIR` and run the tests against that file by hand |
-| Installing fails or picks a surprising Home Assistant | Wrong Python, or a newer test package than the one tested | Use Python 3.14 and pin `pytest-homeassistant-custom-component` ([Configuring your project](configuring-your-project.md#pin-the-versions)) |
+| `ImportError: No Home Assistant test package found` | Neither `pytest-homeassistant` nor `pytest-homeassistant-custom-component` is installed | Install one of them ([Getting started](getting-started.md#2-install)) |
+| pytest stops at startup with `RuntimeError: httpx was already imported; call alias_httpx() before any import httpx` | `pytest-homeassistant` is installed and the `respx` plugin loads first | Add `addopts = -p no:respx` under `[pytest]` in `pytest.ini` |
+| Odd failures after installing the second test package | `pytest-homeassistant` and `pytest-homeassistant-custom-component` must not be installed together. `uv pip install --dry-run` (2026-11-08) reports no conflict: it swaps Home Assistant 2026.11.0 for 2026.10.4 and keeps both test packages | Create a fresh environment and install one of them |
+| Installing fails or picks a surprising Home Assistant | Wrong Python (`pytest-homeassistant` needs 3.14.2 or newer), or a newer test package than the one tested | Use Python 3.14 and pin the test package ([Configuring your project](configuring-your-project.md#pin-the-versions)) |
 | `pytest` fails on a plugin that has nothing to do with this project | Another package in the same environment brings a broken pytest plugin (seen with the machine's global Python) | Use a virtual environment of its own |
 
 ## Reading the log of a failing test

@@ -29,4 +29,4 @@ Please include the version of this tool and of Home Assistant (`pip show homeass
 
 ## Out of scope
 
-Vulnerabilities in Home Assistant itself, in the `pytest-homeassistant-custom-component` package, or in a blueprint you test belong to those projects.
+Vulnerabilities in Home Assistant itself, in the `pytest-homeassistant` or `pytest-homeassistant-custom-component` package, or in a blueprint you test belong to those projects.
