@@ -1,0 +1,3 @@
+# Tools for building the release files (see .github/workflows/release.yaml). The lock file holds the exact versions with hashes.
+build
+setuptools>=77

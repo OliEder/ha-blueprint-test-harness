@@ -70,11 +70,13 @@ The blueprint can be one of your own, one you downloaded, or one that ships with
 Home Assistant releases every month and the test package follows it. The harness does not install a test package (there are two, and a pin of yours must not clash), so you choose and pin it. For repeatable runs put the combination you tested in `requirements-dev.txt`:
 
 ```text
-ha-blueprint-test-harness @ https://github.com/OliEder/ha-blueprint-test-harness/releases/download/v0.1.0/ha_blueprint_test_harness-0.1.0-py3-none-any.whl
+ha-blueprint-test-harness @ https://github.com/OliEder/ha-blueprint-test-harness/releases/download/v0.4.0/ha_blueprint_test_harness-0.4.0-py3-none-any.whl#sha256=<hash>
 pytest-homeassistant==2026.11.0
 ```
 
-`2026.11.0` is the version of `pytest-homeassistant` this harness was tested with (Home Assistant 2026.11.0, Python 3.14.2 or newer). The older `pytest-homeassistant-custom-component==0.13.375` (Home Assistant 2026.10.4) was tested as well; use one of the two, never both. The wheel URL above is the release asset of 0.1.0 (published on 2026-11-07; the line was checked to install it into a fresh environment). For a newer version change the version in the URL. To follow the main branch use the `git+https://...` source from [Getting started](getting-started.md#2-install).
+Take `<hash>` from the file `SHA256SUMS` in the release (from 0.4.0 on; the line for the wheel). pip then refuses a file that differs. To pin every package, not only these two, compile a lock file with hashes and install it with `--require-hashes`: `uv pip compile requirements-dev.txt --generate-hashes -o requirements-dev.lock`, then `python -m pip install --require-hashes -r requirements-dev.lock` (this project does the same).
+
+`2026.11.0` is the version of `pytest-homeassistant` this harness was tested with (Home Assistant 2026.11.0, Python 3.14.2 or newer). The older `pytest-homeassistant-custom-component==0.13.375` (Home Assistant 2026.10.4) was tested as well; use one of the two, never both. The wheel URL above is the release asset of the version in it; for another version change the version and the hash. To follow a state of the repository use the `git+https://...` source from [Getting started](getting-started.md#2-install) with a tag or a commit (`@v0.4.0`).
 
 When you move to a newer test package, run your tests and the mutation tool again. The harness uses Home Assistant internals in several places, so a new Home Assistant version can break it; if it does, [open an issue](https://github.com/OliEder/ha-blueprint-test-harness/issues).
 
@@ -107,13 +109,15 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7   # better: the commit id of a version, with the version as a comment
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
-      - run: python -m pip install -r requirements-dev.txt
+          cache-dependency-path: requirements-dev.lock
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
       - run: python -m pytest -q -p no:cacheprovider
       # Optional: fail when the tests stop noticing broken blueprints. See "Mutation testing".
       - run: >
@@ -125,8 +129,9 @@ Notes:
 
 - Use `pull_request`, not `pull_request_target`, and no secrets: a pull request from a fork runs its own test code in the job.
 - Choose `--fail-under` to fit your blueprint. 100 is a good goal and a demanding start; a survivor that changes nothing real (an "equivalent" change) is explained in [Mutation testing](mutation-testing.md#reading-a-survivor).
-- Versions of `actions/checkout` and `actions/setup-python` move on; check the current major versions when you copy this.
+- `persist-credentials: false` keeps the token out of `.git/config`, where test code of a pull request could read it.
+- A tag such as `@v7` can be moved by whoever controls the action. Pin to the commit id (`actions/checkout@<40 characters> # v7.0.1`) and let Dependabot propose updates (`package-ecosystem: github-actions`); this project does so. The versions in the snippet move on: check the current ones when you copy it.
 
 ## Keep untrusted blueprints away from secrets
 
-Loading a blueprint runs its templates in Home Assistant's template sandbox, and running tests runs Python. Do not run blueprints or tests from people you do not trust with secrets in the environment. See [`SECURITY.md`](../SECURITY.md).
+Running tests runs Python, and loading a blueprint runs its templates in Home Assistant's template sandbox. Home Assistant also reads the blueprint file with its own YAML loader, where `!env_var` and `!include` read environment variables and files outside the sandbox; the harness refuses such a blueprint since 0.4.0 (`start()` raises `BlueprintLoadError`), earlier versions do not. Do not run blueprints or tests from people you do not trust with secrets in the environment or outside a throw-away environment. See [`SECURITY.md`](../SECURITY.md).

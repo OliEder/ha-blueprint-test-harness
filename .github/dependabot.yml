@@ -1,0 +1,8 @@
+# Proposes updates of the GitHub Actions that the workflows use. They are pinned to commit ids; Dependabot keeps the
+# version comment next to the id up to date.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

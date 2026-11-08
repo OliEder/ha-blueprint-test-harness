@@ -22,6 +22,16 @@ Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 
 
 - The message when a blueprint or automation does not come up now reads "the automation did not come up as a working automation".
 
+### Security
+
+Found by an audit on 2026-11-08 (details in [`SECURITY.md`](SECURITY.md)):
+
+- `start()` refuses a blueprint with any YAML tag other than `!input` (`BlueprintLoadError`). Home Assistant resolves `!env_var`, `!include` and `!secret` outside the template sandbox, so a blueprint could read environment variables and files and show them in the recorded calls and in the test output. `start_automation()` was not affected. **Versions up to 0.3.0 are affected.**
+- The mutation tool refuses YAML aliases and files above 1 MB (a few nested aliases made it run for minutes before the first test).
+- `--workdir`: the tool stops if the folder holds `control.yaml` or `M001.yaml`, ... from an earlier run, never writes through a link, and writes its files readable by you only. **Changed:** a folder used for an earlier run must be emptied or replaced.
+- A mutant counts as "invalid" only when pytest's own failure line names `BlueprintLoadError`; text that a test prints no longer changes the score.
+- The workflows: actions pinned to commit ids with a Dependabot configuration, packages installed from `.lock` files with hashes, the release build with locked tools and no build isolation, a `SHA256SUMS` file in every release, no checkout keeps the token, and only the tag-triggered job has write permission (the dry run can only read).
+
 ### Fixed
 
 - `start()` and `start_automation()` no longer fail with `BlueprintLoadError` when a test sets the state of another automation (a scenario in which the automation under test reads it, for example `last_triggered`). Only the automation created by the setup is checked.

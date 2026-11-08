@@ -63,12 +63,16 @@ A maintainer makes a release. An agent may prepare the release commit and draft 
 4. Check locally: run the tests, `python tools/release_info.py notes X.Y.Z` (shows the release notes), and `uv build` (builds the package).
 5. Commit as `Release X.Y.Z` and merge it into `main`. Then run the release workflow by hand on `main` (Actions, Release, Run workflow): a dry run that does everything except create the release and needs no tag. A tag cannot be moved or deleted, so fix what the dry run shows before you tag.
 6. Tag that commit `vX.Y.Z` and push the tag with `git push origin vX.Y.Z`. Do not create a release in the GitHub web interface: the workflow creates the draft, and a release made by hand next to it gives two releases for one tag (this happened with 0.1.0; see `memory/first-release-lessons.md`).
-7. `.github/workflows/release.yaml` runs: it checks that the tag equals the version and that the changelog has the section, runs the tests, builds the source archive and the wheel, and creates a **draft** GitHub release with both files and the changelog section as notes. Review the draft and publish it.
+7. `.github/workflows/release.yaml` runs: it checks that the tag equals the version and that the changelog has the section, runs the tests, builds the source archive and the wheel (with the build tools from `requirements-release.lock`, without build isolation), writes a `SHA256SUMS` file, and creates a **draft** GitHub release with the files and the changelog section as notes. Review the draft and publish it. Only the job that creates the release has write permission and it runs only for a tag; a run started by hand is a dry run that can only read.
 8. Update the line about supported versions in `SECURITY.md`. Add a line to `roadmap/log/`, and update `status/numbers.md` and, if a milestone is done, its row in `ROADMAP.md`.
 
 **After the release**
 
 Set `__version__` on `main` to the next development version, for example `0.2.0.dev0`. The release check refuses a tag on a development version, so a tag on `main` by mistake fails instead of publishing.
+
+## Locked versions
+
+The workflows install from `.lock` files with hashes and use actions pinned to commit ids. To change one, edit the `.txt` file (`requirements-dev.txt`, `requirements-dev-custom-component.txt`, `requirements-release.txt`) and regenerate its lock; the command is in the first lines of the lock file (`uv pip compile ... --generate-hashes --python-platform x86_64-unknown-linux-gnu --python-version 3.14.3`). Commit both. Dependabot proposes updates of the actions; before merging one, check that the commit id belongs to the version named in the comment (`git ls-remote --tags <repository> <tag>`).
 
 ## When a release is wrong
 

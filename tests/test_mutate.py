@@ -85,7 +85,7 @@ def test_a_single_trigger_is_not_dropped_but_one_of_two_is():
 @pytest.mark.parametrize("code,output,timed_out,expected", [
     (0, "1 passed", False, "survived"),
     (1, "1 failed", False, "killed"),
-    (1, "ha_blueprint_test_harness.env.BlueprintLoadError: x", False, "invalid"),
+    (1, "E   ha_blueprint_test_harness.env.BlueprintLoadError: x", False, "invalid"),
     (-1, "", True, "killed"),
     (2, "interrupted", False, "error"),
     (5, "no tests ran", False, "error"),

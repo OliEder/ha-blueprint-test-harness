@@ -113,6 +113,25 @@ def _mutation_override(source: pathlib.Path) -> pathlib.Path:
     return source
 
 
+# A blueprint is read by Home Assistant's own YAML loader, which resolves tags such as !env_var, !include and !secret
+# outside the template sandbox: a blueprint file could read an environment variable or any YAML file the user can read,
+# and the value would show up in the recorded calls and in the test output. Only !input is part of a blueprint, so any
+# other tag is refused before the file is copied. Standard YAML tags (!!str and so on) are plain data and stay allowed.
+def _refuse_reading_tags(source: pathlib.Path) -> None:
+    try:
+        tokens = list(yaml.scan(source.read_text(encoding="utf-8"), Loader=yaml.SafeLoader))
+    except yaml.YAMLError:
+        return  # invalid YAML: Home Assistant reports it when it loads the blueprint
+    for token in tokens:
+        if isinstance(token, yaml.TagToken) and token.value != ("!", "input") and token.value[0] != "!!":
+            handle, suffix = token.value
+            tag = f"!{suffix}" if handle == "!" else f"!<{suffix}>"
+            raise BlueprintLoadError(
+                f"the blueprint uses the YAML tag {tag}; Home Assistant resolves such tags outside the template sandbox "
+                "(for example !env_var and !include read environment variables and files). Only !input is allowed."
+            )
+
+
 # Turns the argument of start_automation() into one automation dict: a dict is used as it is, a file is read, and a
 # file that holds a list needs ``pick`` (an id or an alias) to choose the entry.
 def _load_automation(automation: Mapping[str, Any] | str | pathlib.Path, pick: str | None) -> dict[str, Any]:
@@ -189,6 +208,7 @@ class BlueprintEnv:
         # Home Assistant looks for blueprints in <config>/blueprints/automation/, so put a copy there.
         self._claim()
         source = _mutation_override(pathlib.Path(blueprint))
+        _refuse_reading_tags(source)
         target = self._config_dir / "blueprints" / "automation" / "harness"
         target.mkdir(parents=True)
         shutil.copy(source, target / source.name)
