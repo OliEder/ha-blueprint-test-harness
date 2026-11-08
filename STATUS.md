@@ -4,7 +4,7 @@ A short index. Where things are, which files a task needs, and where the current
 
 ## Right now
 
-- Pre-1.0 for automation blueprints. The repository is public and CI on GitHub is green. Release 0.4.0 is published (automations written directly with `start_automation()`, `responses=`, the mutation tool on automations and `--jobs`, and the fixes of a security audit; 0.3.0 added `render()`, `last_trace()` and config entries, 0.2.0 support for `pytest-homeassistant`). The development version is 0.5.0.dev0.
+- Pre-1.0 for automation blueprints. The repository is public and CI on GitHub is green. Release 0.4.1 is published (a fix of 0.4.0: the mutation tool accepts YAML aliases again); release 0.4.0 (automations written directly with `start_automation()`, `responses=`, the mutation tool on automations and `--jobs`, and the fixes of a security audit; 0.3.0 added `render()`, `last_trace()` and config entries, 0.2.0 support for `pytest-homeassistant`). The development version is 0.5.0.dev0.
 - Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
 - Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
 

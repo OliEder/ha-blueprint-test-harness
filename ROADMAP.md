@@ -1,8 +1,8 @@
 # ha-blueprint-test-harness roadmap
 
-**Stage: release 0.4.0 is out** · next: a compatibility layer so that new Home Assistant versions touch one place (M3)
+**Stage: release 0.4.1 is out** · next: a compatibility layer so that new Home Assistant versions touch one place (M3)
 
-> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** release 0.4.0 published (direct automations, `--jobs`, security fixes); M2 and M6 are in it
+> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** release 0.4.1 published (fix: the mutation tool accepts YAML aliases again); 0.4.0 brought direct automations, `--jobs` and the security fixes
 
 ## Direction
 
@@ -25,7 +25,7 @@ Two things have to hold the whole way, and the milestones below are ordered arou
 - Mutation tool: structural changes (drop an item, drop `from`/`to`/`for`/..., swap `from` and `to`, swap `turn_on`/`turn_off`, mode, delays, booleans, input defaults) and text changes inside Jinja templates (comparisons, `and`/`or`, `not`, `true`/`false`). Outcomes killed, survived, invalid, error; a score; `--fail-under`.
 - Runs on the core test package `pytest-homeassistant` and, for older Home Assistant versions, on `pytest-homeassistant-custom-component` (since 0.2.0).
 - Two reference blueprints: Home Assistant's own `motion_light.yaml` and a small original fixture for time patterns and sun conditions.
-- CI on every push and pull request (tests and mutation runs on Linux), and a release workflow that built and published 0.1.0 to 0.4.0 (it can also be started by hand as a dry run).
+- CI on every push and pull request (tests and mutation runs on Linux), and a release workflow that built and published 0.1.0 to 0.4.1 (it can also be started by hand as a dry run).
 
 ### Not yet
 
