@@ -76,7 +76,7 @@ jobs:
         run: |
           blueprint="$(python -c "import pathlib, homeassistant.components.automation as a; print(pathlib.Path(a.__file__).parent / 'blueprints' / 'motion_light.yaml')")"
           set +e
-          python -m ha_blueprint_test_harness.mutate "$blueprint" --fail-under 100 -- \
+          python -m ha_blueprint_test_harness.mutate "$blueprint" --jobs 4 --fail-under 100 -- \
             python -m pytest -q -x -p no:cacheprovider tests/test_motion_light.py | tee mutation.txt
           status=${PIPESTATUS[0]}
           { echo "### Mutation run: motion_light.yaml"; echo; echo '```'; tail -n 30 mutation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -86,7 +86,7 @@ jobs:
         if: always()
         run: |
           set +e
-          python -m ha_blueprint_test_harness.mutate tests/blueprints/daylight_heartbeat.yaml --fail-under 100 -- \
+          python -m ha_blueprint_test_harness.mutate tests/blueprints/daylight_heartbeat.yaml --jobs 4 --fail-under 100 -- \
             python -m pytest -q -x -p no:cacheprovider tests/test_daylight_heartbeat.py | tee mutation-fixture.txt
           status=${PIPESTATUS[0]}
           { echo "### Mutation run: daylight_heartbeat.yaml"; echo; echo '```'; tail -n 30 mutation-fixture.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -101,7 +101,7 @@ jobs:
           failed=0
           for entry in humidity_warning:93 range_charging:92 outage_lock:100 sun_shutter:88 arrival_reminder:97 button_scenes:93; do
             name="${entry%%:*}"; floor="${entry##*:}"
-            python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --fail-under "$floor" -- \
+            python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --jobs 4 --fail-under "$floor" -- \
               python -m pytest -q -x -p no:cacheprovider "tests/test_$name.py" | tee "mutation-$name.txt"
             [ "${PIPESTATUS[0]}" -eq 0 ] || failed=1
             { echo "### Mutation run: $name.yaml (floor $floor %)"; echo; echo '```'; tail -n 30 "mutation-$name.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

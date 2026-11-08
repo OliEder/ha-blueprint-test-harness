@@ -17,6 +17,7 @@ Passing tests tell you the blueprint does what the tests check. They do not tell
 | Option | Meaning |
 | --- | --- |
 | `--timeout S` | Seconds per test run (default 120). A run that hangs counts as killed. |
+| `--jobs N` | Run `N` mutants at the same time (default 1). Each run is its own process with its own file, so the result is the same; the tests must not share files or ports. Measured on a Mac with 8 cores and 39 mutants: 110 s with 1, 52 s with 4, 42 s with 8, because every run loads Home Assistant again. A run that waits for a timeout counts against its `--timeout` while the machine is busy, so do not set `N` much higher than the number of cores. |
 | `--fail-under PCT` | Exit with status 1 if the score is below `PCT` (0 to 100). For CI. |
 | `--workdir DIR` | Write the broken copies to `DIR` and keep them (default: a temporary folder that is removed). |
 

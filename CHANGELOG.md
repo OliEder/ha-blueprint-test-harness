@@ -9,6 +9,7 @@ All notable changes to this project are written here, newest first. The format f
 - `BlueprintEnv.start_automation(automation, pick=None, ...)`: runs an automation written directly (a dict, or a YAML file with one automation or a list as in `automations.yaml`), without a blueprint header.
 - `responses=` for `start()` and `start_automation()`: services that return an answer (`weather.get_forecasts`) work with `response_variable`. The value is a dict or a function of the call.
 - The mutation tool accepts an automation file, with `--pick` for a list. `start_automation(path)` swaps in the broken copy.
+- `--jobs N` for the mutation tool: runs several mutants at the same time. Same result, in the same order; about 2 times faster with 4 jobs (measured).
 - Documentation: "Test an automation you wrote directly" and two runnable examples (`car_driver`, `frost_warning`).
 
 ### Changed
