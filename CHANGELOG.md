@@ -4,6 +4,12 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
+Pre-1.0: the dependency change below is the reason for a MINOR version.
+
+Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 3.14.10 (macOS) and Ubuntu (CI); also Home Assistant 2026.10.4 with `pytest-homeassistant-custom-component` 0.13.375, Python 3.14.
+
 ### Changed
 
 - The harness works with `pytest-homeassistant` (maintained in Home Assistant core, tested with 2026.11.0) as well as with `pytest-homeassistant-custom-component`; the import in `env.py` uses the first and falls back to the second. If neither is installed, importing the harness raises an `ImportError` that says what to install.
