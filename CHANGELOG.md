@@ -4,17 +4,27 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-08
+
+Pre-1.0: new public names are the reason for a MINOR version.
+
+Tested with: Home Assistant 2026.11.0, `pytest-homeassistant` 2026.11.0, Python 3.14.3 (macOS) and Ubuntu (CI); also Home Assistant 2026.10.4 with `pytest-homeassistant-custom-component` 0.13.375, Python 3.14.3.
+
 ### Added
 
 - `BlueprintEnv.start_automation(automation, pick=None, ...)`: runs an automation written directly (a dict, or a YAML file with one automation or a list as in `automations.yaml`), without a blueprint header.
 - `responses=` for `start()` and `start_automation()`: services that return an answer (`weather.get_forecasts`) work with `response_variable`. The value is a dict or a function of the call.
 - The mutation tool accepts an automation file, with `--pick` for a list. `start_automation(path)` swaps in the broken copy.
 - `--jobs N` for the mutation tool: runs several mutants at the same time. Same result, in the same order; about 2 times faster with 4 jobs (measured).
-- Documentation: "Test an automation you wrote directly" and two runnable examples (`car_driver`, `frost_warning`).
+- Documentation: "Test an automation you wrote directly" and two runnable examples (`car_driver`, `frost_warning`). It also says what does not work: device triggers (`device_id`) do not load, and `homeassistant: start` waits once for the event `homeassistant_started` in current Home Assistant versions (fire it with `fire_event`).
 
 ### Changed
 
 - The message when a blueprint or automation does not come up now reads "the automation did not come up as a working automation".
+
+### Fixed
+
+- `start()` and `start_automation()` no longer fail with `BlueprintLoadError` when a test sets the state of another automation (a scenario in which the automation under test reads it, for example `last_triggered`). Only the automation created by the setup is checked.
 
 ## [0.3.0] - 2026-11-08
 
