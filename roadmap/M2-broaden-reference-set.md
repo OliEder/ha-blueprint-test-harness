@@ -20,6 +20,6 @@ metadata:
 **Done when**
 - At least three more fixtures exist, each with tests.
 - Each fixture has a mutation score of at least 90 % (proposal, to be agreed), not counting documented equivalent mutants.
-- The CI mutation job runs every fixture.
+- The CI mutation runs (one per fixture, side by side, collected by the check `mutation`) cover every fixture.
 
 **Not included.** Script and template blueprints (M5).

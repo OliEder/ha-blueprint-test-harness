@@ -2,9 +2,10 @@ name: CI
 
 # Job "tests" runs the project's own tests with `pytest-homeassistant` (maintained in Home Assistant core,
 # requirements-dev.txt). Job "tests-custom-component" runs the same tests with the older package
-# `pytest-homeassistant-custom-component` (requirements-dev-custom-component.txt). Job "mutation" breaks
-# motion_light.yaml, the fixture blueprint and the reference automations in small ways and fails if the tests stop noticing; the survivors, if
-# any, are listed in the job summary. It uses the package from core.
+# `pytest-homeassistant-custom-component` (requirements-dev-custom-component.txt). The jobs "mutation-run" break
+# motion_light.yaml, the fixture blueprint and each reference automation in small ways (one run each, side by side)
+# and fail if the tests stop noticing; the survivors, if any, are listed in the job summary. They use the package from
+# core. The job "mutation" only collects their result under the name that the branch rules require.
 #
 # The jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
 # run, so a green check always means that the work was done. If the tests fail on the unchanged blueprint, the
@@ -58,8 +59,25 @@ jobs:
       - name: Tests
         run: python -m pytest -p no:cacheprovider -q
 
-  mutation:
+  # One run per blueprint or automation, side by side on separate runners: the wait is that of the slowest one. Each has its
+  # own floor, the score measured when it was written, rounded DOWN (44 of 45 is 97.8 %, so the floor is 97). Equivalent
+  # mutants count as survivors (memory/equivalent-mutants.md), so a floor below 100 is not a gap by itself. A lower score
+  # means a test got weaker. "target" is the file to break; "ha:motion_light" is the blueprint shipped with Home Assistant.
+  mutation-run:
+    name: mutation-run (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: motion_light, target: "ha:motion_light", test: tests/test_motion_light.py, floor: 100}
+          - {name: daylight_heartbeat, target: tests/blueprints/daylight_heartbeat.yaml, test: tests/test_daylight_heartbeat.py, floor: 100}
+          - {name: humidity_warning, target: tests/automations/humidity_warning.yaml, test: tests/test_humidity_warning.py, floor: 93}
+          - {name: range_charging, target: tests/automations/range_charging.yaml, test: tests/test_range_charging.py, floor: 92}
+          - {name: outage_lock, target: tests/automations/outage_lock.yaml, test: tests/test_outage_lock.py, floor: 100}
+          - {name: sun_shutter, target: tests/automations/sun_shutter.yaml, test: tests/test_sun_shutter.py, floor: 88}
+          - {name: arrival_reminder, target: tests/automations/arrival_reminder.yaml, test: tests/test_arrival_reminder.py, floor: 97}
+          - {name: button_scenes, target: tests/automations/button_scenes.yaml, test: tests/test_button_scenes.py, floor: 93}
     steps:
       - uses: actions/checkout@v7
 
@@ -72,38 +90,33 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
 
-      - name: Mutation run on Home Assistant's motion_light blueprint
+      - name: Mutation run
+        env:
+          NAME: ${{ matrix.name }}
+          TARGET: ${{ matrix.target }}
+          TEST: ${{ matrix.test }}
+          FLOOR: ${{ matrix.floor }}
         run: |
-          blueprint="$(python -c "import pathlib, homeassistant.components.automation as a; print(pathlib.Path(a.__file__).parent / 'blueprints' / 'motion_light.yaml')")"
+          if [ "$TARGET" = "ha:motion_light" ]; then
+            TARGET="$(python -c "import pathlib, homeassistant.components.automation as a; print(pathlib.Path(a.__file__).parent / 'blueprints' / 'motion_light.yaml')")"
+          fi
           set +e
-          python -m ha_blueprint_test_harness.mutate "$blueprint" --jobs 4 --fail-under 100 -- \
-            python -m pytest -q -x -p no:cacheprovider tests/test_motion_light.py | tee mutation.txt
+          python -m ha_blueprint_test_harness.mutate "$TARGET" --jobs 4 --fail-under "$FLOOR" -- \
+            python -m pytest -q -x -p no:cacheprovider "$TEST" | tee mutation.txt
           status=${PIPESTATUS[0]}
-          { echo "### Mutation run: motion_light.yaml"; echo; echo '```'; tail -n 30 mutation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Mutation run: $NAME (floor $FLOOR %)"; echo; echo '```'; tail -n 30 mutation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
-      - name: Mutation run on the fixture blueprint
-        if: always()
+  # The check that the branch rules require. It is green only when every run above is green; a skipped or cancelled run
+  # is not green either.
+  mutation:
+    needs: mutation-run
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All mutation runs passed
+        env:
+          RESULT: ${{ needs.mutation-run.result }}
         run: |
-          set +e
-          python -m ha_blueprint_test_harness.mutate tests/blueprints/daylight_heartbeat.yaml --jobs 4 --fail-under 100 -- \
-            python -m pytest -q -x -p no:cacheprovider tests/test_daylight_heartbeat.py | tee mutation-fixture.txt
-          status=${PIPESTATUS[0]}
-          { echo "### Mutation run: daylight_heartbeat.yaml"; echo; echo '```'; tail -n 30 mutation-fixture.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
-
-      - name: Mutation runs on the reference automations
-        if: always()
-        run: |
-          # Each automation has its own floor: the score measured when it was written, rounded DOWN (44 of 45 is 97.8 %, so
-          # the floor is 97). Equivalent mutants count as survivors (memory/equivalent-mutants.md). A lower score means a test got weaker.
-          set +e
-          failed=0
-          for entry in humidity_warning:93 range_charging:92 outage_lock:100 sun_shutter:88 arrival_reminder:97 button_scenes:93; do
-            name="${entry%%:*}"; floor="${entry##*:}"
-            python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --jobs 4 --fail-under "$floor" -- \
-              python -m pytest -q -x -p no:cacheprovider "tests/test_$name.py" | tee "mutation-$name.txt"
-            [ "${PIPESTATUS[0]}" -eq 0 ] || failed=1
-            { echo "### Mutation run: $name.yaml (floor $floor %)"; echo; echo '```'; tail -n 30 "mutation-$name.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          done
-          exit "$failed"
+          echo "mutation runs: $RESULT"
+          [ "$RESULT" = "success" ]
