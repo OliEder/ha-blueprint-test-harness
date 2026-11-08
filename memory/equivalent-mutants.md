@@ -11,6 +11,7 @@ metadata:
 - `mode: single` to `restart` can be equivalent when runs never overlap (seen again on `docs/examples/window_heater.yaml`, whose actions finish at once).
 - `>` to `>=` on a value that is multiplied by zero or only matters above zero (`report_age > 0` next to a product with the age, `soc_raw > 0` when the corrected level is 0 either way, `range_raw > 0` for a product that is 0 at 0): same result at the boundary (seen on `tests/automations/range_charging.yaml`, 3 mutants).
 - `mode: queued` or `single` to the other one when every run ends at once (a mocked notify returns immediately), so runs never overlap (seen on `tests/automations/humidity_warning.yaml` and `range_charging.yaml`).
+- A bound that the value can never cross: `below: 360` or `above: 0` on a sun azimuth, which is always between 0 and 360 (seen on `tests/automations/sun_shutter.yaml`, 2 mutants).
 
 **Why:** a survivor is either a gap or a change with no effect, and only a person can tell which.
 
