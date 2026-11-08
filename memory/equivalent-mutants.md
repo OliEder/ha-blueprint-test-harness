@@ -13,6 +13,8 @@ metadata:
 - `mode: queued` or `single` to the other one when every run ends at once (a mocked notify returns immediately), so runs never overlap (seen on `tests/automations/humidity_warning.yaml` and `range_charging.yaml`).
 - A bound that the value can never cross: `below: 360` or `above: 0` on a sun azimuth, which is always between 0 and 360 (seen on `tests/automations/sun_shutter.yaml`, 2 mutants).
 
+- A trigger-id condition on the last branch of a `choose` when only three triggers exist and the other two branches come first: whatever reaches it is that trigger (seen on `tests/automations/button_scenes.yaml`).
+
 **Why:** a survivor is either a gap or a change with no effect, and only a person can tell which.
 
 **How to apply:** record a new equivalent mutant here, with the reason, before accepting it as a survivor.

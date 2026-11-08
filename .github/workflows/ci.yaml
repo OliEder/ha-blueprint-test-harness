@@ -97,7 +97,7 @@ jobs:
         run: |
           set +e
           failed=0
-          for name in humidity_warning range_charging outage_lock sun_shutter; do
+          for name in humidity_warning range_charging outage_lock sun_shutter arrival_reminder button_scenes; do
             python -m ha_blueprint_test_harness.mutate "tests/automations/$name.yaml" --fail-under 90 -- \
               python -m pytest -q -x -p no:cacheprovider "tests/test_$name.py" | tee "mutation-$name.txt"
             [ "${PIPESTATUS[0]}" -eq 0 ] || failed=1
