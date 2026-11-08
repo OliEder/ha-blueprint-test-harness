@@ -1,6 +1,8 @@
-"""Mutation testing for blueprints: break the YAML in small ways and see whether the tests notice.
+"""Mutation testing for blueprints and automations: break the YAML in small ways and see whether the tests notice.
 
     python -m ha_blueprint_test_harness.mutate path/to/blueprint.yaml -- python -m pytest -q -x
+
+The file may also hold an automation written directly (as in ``automations.yaml``); for a list use ``--pick``.
 
 Each mutant changes one thing (a comparison, a condition, a ``from:``, a delay, ...). The test command
 runs once per mutant; the harness swaps the mutant in for the original blueprint (see
@@ -101,11 +103,15 @@ class Mutant:
     description: str  # human-readable: where and what, e.g. "triggers.from: remove 'from: off'"
     apply: Callable[[Any], None]
 
-    # Returns the blueprint text with this one change applied. The original document stays untouched.
-    def build(self, document: Any) -> str:
+    # Returns a copy of the document with this one change applied. The original stays untouched.
+    def mutated(self, document: Any) -> Any:
         mutated = copy.deepcopy(document)
         self.apply(mutated)
-        return dump(mutated)
+        return mutated
+
+    # Returns the blueprint text with this one change applied. The original document stays untouched.
+    def build(self, document: Any) -> str:
+        return dump(self.mutated(document))
 
 
 # A position inside the parsed blueprint, as the keys and indexes to follow, e.g. ("actions", 1, "delay").
@@ -283,6 +289,33 @@ def find_mutants(document: Any) -> list[Mutant]:
     return mutants
 
 
+# ------------------------------------------------------------------------------- automations written directly
+
+
+# A file with automations is either one automation (a dict) or a list as in automations.yaml. Returns the one to
+# mutate and its index in the list (None for a dict). A list with several entries needs ``pick``, an id or an alias.
+def select_automation(document: Any, pick: str | None) -> tuple[Any, int | None]:
+    if not isinstance(document, list):
+        return document, None
+    if pick is None:
+        if len(document) == 1:
+            return document[0], 0
+        raise SystemExit(f"The file holds {len(document)} automations; say which one to mutate with --pick <id or alias>.")
+    matches = [i for i, item in enumerate(document) if isinstance(item, dict) and pick in (item.get("id"), item.get("alias"))]
+    if len(matches) != 1:
+        raise SystemExit(f"--pick {pick!r} matches {len(matches)} automations; it must match exactly one.")
+    return document[matches[0]], matches[0]
+
+
+# Puts a mutated entry back into the whole file, so that the tests read the same shape as before.
+def embed(document: Any, index: int | None, entry: Any) -> Any:
+    if index is None:
+        return entry
+    whole = list(document)
+    whole[index] = entry
+    return whole
+
+
 # ----------------------------------------------------------------------------------------------- runner
 
 
@@ -341,11 +374,13 @@ def _run(command: list[str], env: dict[str, str], timeout: float) -> tuple[int, 
 # The main routine. Two safety checks first: the tests must pass on the untouched blueprint, and also on an
 # unchanged copy that was read and written back by this tool (otherwise the tool itself would be the cause
 # of failures). Then each mutant is written to a file, the tests run against it, and the outcome is judged.
-def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120,
+def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120, pick: str | None = None,
                  workdir: pathlib.Path | None = None, log: Callable[[str], None] = print) -> Report:
     blueprint = blueprint.resolve()
     document = load(blueprint.read_text(encoding="utf-8"))
-    mutants = find_mutants(document)
+    # A blueprint or one automation is mutated as it is; from a list (automations.yaml) only the picked entry.
+    entry, index = select_automation(document, pick)
+    mutants = find_mutants(entry)
     # Never inherit mutation settings from an outer run.
     base_env = {key: value for key, value in os.environ.items() if not key.startswith("HA_BLUEPRINT_TEST_HARNESS_")}
 
@@ -372,7 +407,7 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
         results = []
         for mutant in mutants:
             path = folder / f"{mutant.id}.yaml"
-            path.write_text(mutant.build(document), encoding="utf-8")
+            path.write_text(dump(embed(document, index, mutant.mutated(entry))), encoding="utf-8")
             code, output, timed_out = _run(command, {**env, "HA_BLUEPRINT_TEST_HARNESS_MUTANT": str(path)}, timeout)
             outcome = classify(code, output, timed_out)
             results.append(Result(mutant, outcome))
@@ -395,7 +430,8 @@ def split_command(argv: list[str]) -> tuple[list[str], list[str]]:
 # Exit code: 0 = fine, 1 = score below --fail-under, 2 = a test run broke.
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m ha_blueprint_test_harness.mutate", description=__doc__.split("\n\n")[0])
-    parser.add_argument("blueprint", type=pathlib.Path)
+    parser.add_argument("blueprint", type=pathlib.Path, help="a blueprint file, or a file with an automation written directly")
+    parser.add_argument("--pick", help="for a file with several automations: the id or alias of the one to mutate")
     parser.add_argument("--timeout", type=float, default=120, help="seconds per test run (default 120)")
     parser.add_argument("--workdir", type=pathlib.Path, help="keep the mutant files here")
     parser.add_argument("--fail-under", type=float, default=0.0, help="exit 1 if the score is lower (0 to 100)")
@@ -403,7 +439,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(own)
     command = command or [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
 
-    report = run_mutation(args.blueprint, command, timeout=args.timeout, workdir=args.workdir)
+    report = run_mutation(args.blueprint, command, timeout=args.timeout, pick=args.pick, workdir=args.workdir)
     survivors = [result for result in report.results if result.outcome == "survived"]
     print()
     print(f"killed {report.count('killed')}, survived {report.count('survived')}, "

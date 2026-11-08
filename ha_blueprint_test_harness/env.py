@@ -118,7 +118,8 @@ def _mutation_override(source: pathlib.Path) -> pathlib.Path:
 def _load_automation(automation: Mapping[str, Any] | str | pathlib.Path, pick: str | None) -> dict[str, Any]:
     if isinstance(automation, Mapping):
         return dict(automation)
-    loaded = yaml.safe_load(pathlib.Path(automation).read_text(encoding="utf-8"))
+    # Under the mutation tool the file that is being mutated is swapped for the mutant here.
+    loaded = yaml.safe_load(_mutation_override(pathlib.Path(automation)).read_text(encoding="utf-8"))
     if isinstance(loaded, Mapping):
         return dict(loaded)
     if not isinstance(loaded, list) or not all(isinstance(item, Mapping) for item in loaded):
