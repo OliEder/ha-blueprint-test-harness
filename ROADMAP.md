@@ -1,8 +1,8 @@
 # ha-blueprint-test-harness roadmap
 
-**Stage: release 0.2.0 is out** · next: a broader set of reference blueprints, then a compatibility layer so that new Home Assistant versions touch one place
+**Stage: release 0.3.0 is out** · next: a broader set of reference blueprints, then a compatibility layer so that new Home Assistant versions touch one place
 
-> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** release 0.2.0 (support for `pytest-homeassistant`)
+> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** release 0.3.0 published; M6 (direct automations) done, unreleased
 
 ## Direction
 
@@ -25,7 +25,7 @@ Two things have to hold the whole way, and the milestones below are ordered arou
 - Mutation tool: structural changes (drop an item, drop `from`/`to`/`for`/..., swap `from` and `to`, swap `turn_on`/`turn_off`, mode, delays, booleans, input defaults) and text changes inside Jinja templates (comparisons, `and`/`or`, `not`, `true`/`false`). Outcomes killed, survived, invalid, error; a score; `--fail-under`.
 - Runs on the core test package `pytest-homeassistant` and, for older Home Assistant versions, on `pytest-homeassistant-custom-component` (since 0.2.0).
 - Two reference blueprints: Home Assistant's own `motion_light.yaml` and a small original fixture for time patterns and sun conditions.
-- CI on every push and pull request (tests and mutation runs on Linux), and a release workflow that built and published 0.1.0 and 0.2.0 (it can also be started by hand as a dry run).
+- CI on every push and pull request (tests and mutation runs on Linux), and a release workflow that built and published 0.1.0, 0.2.0 and 0.3.0 (it can also be started by hand as a dry run).
 
 ### Not yet
 
@@ -47,7 +47,7 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | M4 | **Several Home Assistant generations.** A CI matrix over the blueprint's `min_version`, recent monthly releases and the current one; version markers; a weekly pin proposal | open | [M4](roadmap/M4-several-ha-generations.md) |
 | M11 | **Templates and traces.** Render a template against the simulated states, read the trace of the last run (evaluated variables, the path through `choose`) and provide config entries, so that the template checks done by hand in an instance can be done in tests. Found on a real blueprint | done | — |
 | M5 | **More kinds of blueprints.** Script blueprints and template (entity) blueprints, with the same fixtures-and-mutation approach | open | — |
-| M6 | **Direct automations.** Load an automation written directly (no blueprint header), mock services that return a response, and run the mutation tool on it. A first version already works with a blueprint header on the automation (`memory/automations-via-blueprint-wrapper.md`) | open | [M6](roadmap/M6-direct-automations.md) |
+| M6 | **Direct automations.** Load an automation written directly (no blueprint header) with `start_automation()`, mock services that return a response with `responses=`, and run the mutation tool on it (`--pick` for a list) | done | — |
 | M7 | Branch coverage from Home Assistant's automation traces (which `choose` branches and conditions ran); builds on M11 | idea | — |
 | M8 | Real service schemas for core domains (load the real `light`, `notify`, ... instead of a recorder), so that a changed parameter is noticed | idea | — |
 | M9 | Distribution beyond the first release: a machine-readable report (JSON), a reusable GitHub Action for other repositories, publishing to PyPI | idea | — |

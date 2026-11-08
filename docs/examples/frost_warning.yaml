@@ -1,0 +1,24 @@
+# An automation written directly that asks a service for an answer (weather.get_forecasts) and uses it.
+id: frost_warning
+alias: Warn about frost
+mode: single
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.evening
+    to: "on"
+actions:
+  - action: weather.get_forecasts
+    target:
+      entity_id: weather.home
+    data:
+      type: daily
+    response_variable: forecast
+  - variables:
+      lowest: "{{ forecast['weather.home']['forecast'][:2] | map(attribute='templow') | min }}"
+  - if:
+      - condition: template
+        value_template: "{{ lowest < 0 }}"
+    then:
+      - action: notify.phone
+        data:
+          message: "Frost tonight: {{ lowest }} degrees"

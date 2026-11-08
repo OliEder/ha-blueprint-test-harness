@@ -26,6 +26,20 @@ Before it breaks anything the tool checks that your tests pass on the original a
 
 The tool runs your tests many times (once per mutant) and prints the result only at the end, so a run takes minutes without any output: with 73 mutants and 56 tests about 3 minutes (measured by a test project on 2026-11-07). Run it in the background in CI. The number of mutants grows with the size of the blueprint: the three used in this project's tests have 8, 18 and 27.
 
+## Automations written directly
+
+The same tool breaks an automation written directly. Give it the file and, if the file is a list as `automations.yaml` is, the entry to break:
+
+```sh
+.venv/bin/python -m ha_blueprint_test_harness.mutate docs/examples/car_driver.yaml \
+  -- .venv/bin/python -m pytest -q -x -p no:cacheprovider docs/examples/test_car_driver.py
+.venv/bin/python -m ha_blueprint_test_harness.mutate automations.yaml --pick my_automation_id -- ...
+```
+
+- `--pick` takes the `id` or the `alias`. Without it, a list with several entries stops with a message; only the picked entry is broken, the others stay as they are.
+- The test must start the automation from the **file** (`start_automation(path)`); a dict cannot be swapped for a broken copy.
+- The kinds of change are the same as for a blueprint (they follow the keys `triggers`, `conditions`, `actions` and the templates). Measured on the two examples of this project: `car_driver.yaml` 20 of 20, `frost_warning.yaml` 9 of 10 (the survivor, `mode: single` to `restart`, changes nothing because the run ends at once).
+
 ## Read the result
 
 A real run on the documentation example [`examples/button_light.yaml`](examples/button_light.yaml), before one test was added:

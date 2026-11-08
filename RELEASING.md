@@ -12,7 +12,7 @@ How version numbers are chosen, what counts as a breaking change, and how a rele
 
 A change to any of these is visible to users and is versioned. Everything else (names starting with an underscore, the tests, the documents) is not.
 
-- **Python names** exported by the package (`__all__`): `BlueprintEnv` (with `start`, `set_state`, `fire_event`, `advance`, `settle`, `render`, `last_trace`, `calls`, `calls_to`), `Call` (with `name`, `data`, `entity_ids`), `Trace` (with `path`, `variables`, `steps`, `run_id`, `error`), `MockConfigEntry` (re-exported from the installed test package), `sets_state` and `BlueprintLoadError`.
+- **Python names** exported by the package (`__all__`): `BlueprintEnv` (with `start`, `start_automation`, `set_state`, `fire_event`, `advance`, `settle`, `render`, `last_trace`, `calls`, `calls_to`), `Call` (with `name`, `data`, `entity_ids`), `Trace` (with `path`, `variables`, `steps`, `run_id`, `error`), `MockConfigEntry` (re-exported from the installed test package), `sets_state` and `BlueprintLoadError`.
 - **The pytest plugin and fixture:** the module `ha_blueprint_test_harness.pytest_plugin`, which users name in `pytest_plugins`, and the fixture `blueprint_env` it provides.
 - **The mutation command** `python -m ha_blueprint_test_harness.mutate`: its options (`--timeout`, `--workdir`, `--fail-under`, the `--` before the test command), its exit codes (0 fine; 1 the score is below `--fail-under`, or the tests fail on the unchanged blueprint; 2 a test run itself broke) and its outcome names `killed`, `survived`, `invalid` and `error`.
 - **The environment variables** `HA_BLUEPRINT_TEST_HARNESS_ORIGINAL` and `HA_BLUEPRINT_TEST_HARNESS_MUTANT`, through which the mutation command and the harness talk to each other.

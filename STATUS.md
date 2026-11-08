@@ -4,7 +4,7 @@ A short index. Where things are, which files a task needs, and where the current
 
 ## Right now
 
-- Pre-1.0 for automation blueprints. The repository is public and CI on GitHub is green. Release 0.2.0 is published (it supports `pytest-homeassistant` as well as the older `pytest-homeassistant-custom-component`); `main` carries the development version 0.3.0.dev0 once pull request 7 is merged (see `status/open.md`).
+- Pre-1.0 for automation blueprints. The repository is public and CI on GitHub is green. Release 0.3.0 is published (templates and traces: `render()`, `last_trace()`, config entries; 0.2.0 added support for `pytest-homeassistant` as well as the older `pytest-homeassistant-custom-component`). Automations written directly (M6) are done and wait for 0.4.0; the development version is 0.4.0.dev0.
 - Next: a repository and a first CI run, then a broader set of reference blueprints, then the compatibility layer (milestones in [`ROADMAP.md`](ROADMAP.md)).
 - Numbers are in `status/numbers.md`, with date and command. They are not repeated here.
 

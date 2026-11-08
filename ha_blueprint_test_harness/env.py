@@ -21,7 +21,8 @@ import shutil
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from typing import Any
 
-from homeassistant.core import HomeAssistant, ServiceCall
+import yaml
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.template import Template
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dtu
@@ -112,6 +113,27 @@ def _mutation_override(source: pathlib.Path) -> pathlib.Path:
     return source
 
 
+# Turns the argument of start_automation() into one automation dict: a dict is used as it is, a file is read, and a
+# file that holds a list needs ``pick`` (an id or an alias) to choose the entry.
+def _load_automation(automation: Mapping[str, Any] | str | pathlib.Path, pick: str | None) -> dict[str, Any]:
+    if isinstance(automation, Mapping):
+        return dict(automation)
+    # Under the mutation tool the file that is being mutated is swapped for the mutant here.
+    loaded = yaml.safe_load(_mutation_override(pathlib.Path(automation)).read_text(encoding="utf-8"))
+    if isinstance(loaded, Mapping):
+        return dict(loaded)
+    if not isinstance(loaded, list) or not all(isinstance(item, Mapping) for item in loaded):
+        raise ValueError(f"{automation} holds neither an automation nor a list of automations")
+    if pick is None:
+        if len(loaded) == 1:
+            return dict(loaded[0])
+        raise ValueError(f"{automation} holds {len(loaded)} automations; say which one with pick=<id or alias>")
+    matches = [item for item in loaded if pick in (item.get("id"), item.get("alias"))]
+    if len(matches) != 1:
+        raise ValueError(f"pick={pick!r} matches {len(matches)} automations in {automation}; it must match exactly one (nothing or several found)")
+    return dict(matches[0])
+
+
 # Builds an Effect that sets every entity the service call is aimed at to a fixed state.
 # Example: sets_state("on") for light.turn_on makes the simulated light actually turn on.
 def sets_state(state: str) -> Effect:
@@ -148,6 +170,7 @@ class BlueprintEnv:
         states: Mapping[str, str | tuple[str, Mapping[str, Any]]] | None = None,
         services: Iterable[str] = (),
         effects: Mapping[str, Effect] | None = None,
+        responses: Mapping[str, Any] | None = None,
         components: Iterable[str] = (),
         config_entries: Iterable[MockConfigEntry] = (),
         when: dt.datetime | None = None,
@@ -157,22 +180,60 @@ class BlueprintEnv:
 
         ``services`` are names like ``"light.turn_on"``. They are recorded in ``calls`` and
         accept any data, so a service schema that changes in the real integration is not noticed.
+        ``responses`` maps the name of a service that returns an answer (``"weather.get_forecasts"``) to that answer, or to a
+        function of the call that returns it, so ``response_variable`` works.
         ``components`` are real Home Assistant components to set up first (for example ``"sun"``
         when the blueprint uses sun conditions). ``config_entries`` are added to the system first, for template
         functions such as ``config_entry_attr``. ``when`` moves the frozen clock before anything runs.
         """
-        if self._started:
-            raise RuntimeError("start() can be called once per environment")
-        self._started = True
-        if when is not None:
-            self._freezer.move_to(when)
         # Home Assistant looks for blueprints in <config>/blueprints/automation/, so put a copy there.
-        self.hass.config.config_dir = str(self._config_dir)
+        self._claim()
         source = _mutation_override(pathlib.Path(blueprint))
         target = self._config_dir / "blueprints" / "automation" / "harness"
         target.mkdir(parents=True)
         shutil.copy(source, target / source.name)
+        # This is the same configuration a user writes in the UI: "use this blueprint with these inputs".
+        config = {"id": _AUTOMATION_ID, "alias": alias, "use_blueprint": {"path": f"harness/{source.name}", "input": dict(inputs or {})}}
+        await self._boot(config, states, services, effects, responses, components, config_entries, when)
 
+    # Loads an automation that is written directly (as in automations.yaml or the UI's YAML view), without a
+    # blueprint header. ``automation`` is a dict or the path of a YAML file. A file may hold one automation or a
+    # list; for a list, ``pick`` names the entry by its ``id`` or ``alias``. The other options are the same as in start().
+    async def start_automation(
+        self,
+        automation: Mapping[str, Any] | str | pathlib.Path,
+        *,
+        pick: str | None = None,
+        states: Mapping[str, str | tuple[str, Mapping[str, Any]]] | None = None,
+        services: Iterable[str] = (),
+        effects: Mapping[str, Effect] | None = None,
+        responses: Mapping[str, Any] | None = None,
+        components: Iterable[str] = (),
+        config_entries: Iterable[MockConfigEntry] = (),
+        when: dt.datetime | None = None,
+    ) -> None:
+        """Set up ``automation`` as it is written, with the same ``states``, ``services`` and so on as ``start()``.
+
+        ``responses`` works as in ``start()``. The harness gives the automation its own id so that ``last_trace()`` finds it; the rest of the
+        configuration is used unchanged.
+        """
+        self._claim()
+        config = {**_load_automation(automation, pick), "id": _AUTOMATION_ID}
+        config.setdefault("alias", "automation under test")
+        await self._boot(config, states, services, effects, responses, components, config_entries, when)
+
+    # Marks the environment as used; an environment holds exactly one automation.
+    def _claim(self) -> None:
+        if self._started:
+            raise RuntimeError("start() or start_automation() can be called once per environment")
+        self._started = True
+
+    # The part that start() and start_automation() share: move the clock, set up real components, set initial
+    # states, mock the services, then create the automation and check that it really came up.
+    async def _boot(self, config, states, services, effects, responses, components, config_entries, when) -> None:
+        if when is not None:
+            self._freezer.move_to(when)
+        self.hass.config.config_dir = str(self._config_dir)
         for component in components:
             assert await async_setup_component(self.hass, component, {}), component
         for entry in config_entries:
@@ -181,18 +242,20 @@ class BlueprintEnv:
             state, attributes = value if isinstance(value, tuple) else (value, None)
             self.hass.states.async_set(entity_id, state, attributes)
         for name in services:
+            if name in (responses or {}):
+                raise ValueError(f"{name} is listed in services and in responses; use responses for a service that returns an answer")
             self._mock_service(name, (effects or {}).get(name))
+        for name, answer in (responses or {}).items():
+            self._mock_service(name, (effects or {}).get(name), answer, with_response=True)
 
-        # This is the same configuration a user writes in the UI: "use this blueprint with these inputs".
-        config = {"id": _AUTOMATION_ID, "alias": alias, "use_blueprint": {"path": f"harness/{source.name}", "input": dict(inputs or {})}}
         if not await async_setup_component(self.hass, "automation", {"automation": [config]}):
             raise BlueprintLoadError("the automation component did not set up")
         await self.settle()
-        # Home Assistant logs a bad blueprint and carries on, so check that exactly one automation exists
+        # Home Assistant logs a bad automation and carries on, so check that exactly one automation exists
         # and that it is not "unavailable".
         entity_ids = self.hass.states.async_entity_ids("automation")
         if len(entity_ids) != 1 or self.hass.states.get(entity_ids[0]).state == "unavailable":
-            raise BlueprintLoadError(f"the blueprint did not produce a working automation: {entity_ids}")
+            raise BlueprintLoadError(f"the automation did not come up as a working automation: {entity_ids}")
 
     # Evaluates a template string against the simulated states, like the template tool of an instance does.
     # The result has its real type (True, 8, a list), not text.
@@ -206,18 +269,26 @@ class BlueprintEnv:
 
     # Registers a fake version of one service, e.g. "light.turn_on". Instead of doing anything real it
     # writes the call into ``self.calls`` and, if given, runs the effect (see sets_state).
-    def _mock_service(self, name: str, effect: Effect | None) -> None:
+    # With ``with_response`` the service answers like ``weather.get_forecasts`` does: ``answer`` is the dict it
+    # returns, or a function of the call that returns it (it may be async), so ``response_variable`` works.
+    def _mock_service(self, name: str, effect: Effect | None, answer: Any = None, *, with_response: bool = False) -> None:
         domain, service = name.split(".", 1)
 
         # What Home Assistant runs whenever the blueprint calls this service.
-        async def handler(call: ServiceCall) -> None:
+        async def handler(call: ServiceCall) -> Any:
             self.calls.append(Call(call.domain, call.service, dict(call.data)))
             if effect is not None:
                 result = effect(self.hass, call)
                 if inspect.isawaitable(result):
                     await result
+            if not with_response:
+                return None
+            reply = answer(call) if callable(answer) else answer
+            return await reply if inspect.isawaitable(reply) else reply
 
-        self.hass.services.async_register(domain, service, handler)
+        # OPTIONAL lets the automation call the service with or without a response_variable.
+        supports = SupportsResponse.OPTIONAL if with_response else SupportsResponse.NONE
+        self.hass.services.async_register(domain, service, handler, supports_response=supports)
 
     # Gives everything that is ready to run a chance to run, without waiting for scripts that are
     # intentionally paused (waiting for a trigger or in a delay).

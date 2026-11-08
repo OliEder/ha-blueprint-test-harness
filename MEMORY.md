@@ -18,7 +18,6 @@ Keep it current. Fix or delete an entry as soon as it is wrong, and check a clai
 
 - [`last_reported` is a weak age signal](memory/last-reported-weak-age-signal.md): read before writing or reviewing an age check or recommending a limit.
 
-- [Automations through a blueprint header](memory/automations-via-blueprint-wrapper.md): read when someone asks whether the harness can test an automation that is not a blueprint.
 
 ## Releases
 
