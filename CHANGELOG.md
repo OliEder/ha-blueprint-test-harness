@@ -4,6 +4,16 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+### Added
+
+- `BlueprintEnv.render(template, variables=None)`: evaluates a template against the simulated states and returns the value with its real type.
+- `BlueprintEnv.last_trace()` and `Trace`: the variables the last run evaluated (`trace.variables`) and the paths it went through (`trace.path`). Raises `LookupError` before the first run. It reads Home Assistant's `trace` component, in one function.
+- `start(config_entries=[...])` and `MockConfigEntry`: config entries added before the blueprint starts, for template functions such as `config_entry_attr`.
+
+### Changed
+
+- The automation under test now has an id (`blueprint_under_test`), because Home Assistant stores no trace for an automation without one.
+
 ## [0.2.0] - 2026-11-08
 
 Pre-1.0: the dependency change below is the reason for a MINOR version.

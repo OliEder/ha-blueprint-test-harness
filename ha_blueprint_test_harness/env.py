@@ -22,6 +22,7 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping
 from typing import Any
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.template import Template
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dtu
 
@@ -29,10 +30,10 @@ from homeassistant.util import dt as dtu
 # core) or `pytest-homeassistant-custom-component` (the older one). They must not be installed together, so use
 # whichever is there and say what to install if neither is.
 try:
-    from pytest_homeassistant.common import async_fire_time_changed
+    from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 except ModuleNotFoundError:
     try:
-        from pytest_homeassistant_custom_component.common import async_fire_time_changed
+        from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
     except ModuleNotFoundError as error:
         raise ImportError(
             "No Home Assistant test package found. Install `pytest-homeassistant` (or, for older Home Assistant "
@@ -44,6 +45,33 @@ _SETTLE_ITERATIONS = 20
 
 # A function that runs when a mocked service is called, e.g. to switch a light "on" in the simulation.
 Effect = Callable[[HomeAssistant, ServiceCall], Awaitable[None] | None]
+
+
+# The id the automation under test is given. Home Assistant stores no trace for an automation without an id.
+_AUTOMATION_ID = "blueprint_under_test"
+
+
+# What one run of the automation did, read from Home Assistant's trace. ``steps`` maps a path such as
+# "action/2/choose/0/sequence/0" to what happened there; ``variables`` merges the variables every step set.
+@dataclasses.dataclass(frozen=True)
+class Trace:
+    run_id: str
+    error: str | None
+    steps: Mapping[str, list[Mapping[str, Any]]]
+
+    # The paths the run went through, in the order it reached them.
+    @property
+    def path(self) -> list[str]:
+        return list(self.steps)
+
+    # Every variable the run evaluated, with the value it ended up with (real types: True, 14.0, not text).
+    @property
+    def variables(self) -> dict[str, Any]:
+        merged: dict[str, Any] = {}
+        for elements in self.steps.values():
+            for element in elements:
+                merged.update(element.get("changed_variables") or {})
+        return merged
 
 
 # Raised by start() when the blueprint did not turn into a working automation (typo, missing input, ...).
@@ -121,6 +149,7 @@ class BlueprintEnv:
         services: Iterable[str] = (),
         effects: Mapping[str, Effect] | None = None,
         components: Iterable[str] = (),
+        config_entries: Iterable[MockConfigEntry] = (),
         when: dt.datetime | None = None,
         alias: str = "blueprint under test",
     ) -> None:
@@ -129,7 +158,8 @@ class BlueprintEnv:
         ``services`` are names like ``"light.turn_on"``. They are recorded in ``calls`` and
         accept any data, so a service schema that changes in the real integration is not noticed.
         ``components`` are real Home Assistant components to set up first (for example ``"sun"``
-        when the blueprint uses sun conditions). ``when`` moves the frozen clock before anything runs.
+        when the blueprint uses sun conditions). ``config_entries`` are added to the system first, for template
+        functions such as ``config_entry_attr``. ``when`` moves the frozen clock before anything runs.
         """
         if self._started:
             raise RuntimeError("start() can be called once per environment")
@@ -145,6 +175,8 @@ class BlueprintEnv:
 
         for component in components:
             assert await async_setup_component(self.hass, component, {}), component
+        for entry in config_entries:
+            entry.add_to_hass(self.hass)
         for entity_id, value in (states or {}).items():
             state, attributes = value if isinstance(value, tuple) else (value, None)
             self.hass.states.async_set(entity_id, state, attributes)
@@ -152,7 +184,7 @@ class BlueprintEnv:
             self._mock_service(name, (effects or {}).get(name))
 
         # This is the same configuration a user writes in the UI: "use this blueprint with these inputs".
-        config = {"alias": alias, "use_blueprint": {"path": f"harness/{source.name}", "input": dict(inputs or {})}}
+        config = {"id": _AUTOMATION_ID, "alias": alias, "use_blueprint": {"path": f"harness/{source.name}", "input": dict(inputs or {})}}
         if not await async_setup_component(self.hass, "automation", {"automation": [config]}):
             raise BlueprintLoadError("the automation component did not set up")
         await self.settle()
@@ -161,6 +193,16 @@ class BlueprintEnv:
         entity_ids = self.hass.states.async_entity_ids("automation")
         if len(entity_ids) != 1 or self.hass.states.get(entity_ids[0]).state == "unavailable":
             raise BlueprintLoadError(f"the blueprint did not produce a working automation: {entity_ids}")
+
+    # Evaluates a template string against the simulated states, like the template tool of an instance does.
+    # The result has its real type (True, 8, a list), not text.
+    def render(self, template: str, variables: Mapping[str, Any] | None = None) -> Any:
+        return Template(template, self.hass).async_render(dict(variables or {}))
+
+    # The trace of the automation's last run: which variables it evaluated and which branches it took.
+    # Raises LookupError when the automation has not run yet.
+    def last_trace(self) -> Trace:
+        return _read_last_trace(self.hass)
 
     # Registers a fake version of one service, e.g. "light.turn_on". Instead of doing anything real it
     # writes the call into ``self.calls`` and, if given, runs the effect (see sets_state).
@@ -211,3 +253,16 @@ class BlueprintEnv:
         self._freezer.tick(dt.timedelta(seconds=seconds))
         async_fire_time_changed(self.hass, dtu.utcnow())
         await self.settle()
+
+
+# The one place that reads Home Assistant's trace store. It uses internals of the `trace` component, so a new
+# Home Assistant version that moves them breaks this function (and its canary test) and nothing else.
+def _read_last_trace(hass: HomeAssistant) -> Trace:
+    from homeassistant.components.trace.const import DATA_TRACE
+
+    buckets = hass.data.get(DATA_TRACE, {}).get(f"automation.{_AUTOMATION_ID}")
+    runs = list(buckets.runs.values()) if buckets is not None else []
+    if not runs:
+        raise LookupError("the automation has not run yet, so there is no trace")
+    data = runs[-1].as_extended_dict()
+    return Trace(run_id=data["run_id"], error=data.get("error"), steps=data["trace"])

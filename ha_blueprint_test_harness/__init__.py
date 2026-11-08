@@ -2,6 +2,6 @@
 # See RELEASING.md for how versions are chosen.
 __version__ = "0.3.0.dev0"
 
-from .env import BlueprintEnv, BlueprintLoadError, Call, sets_state
+from .env import BlueprintEnv, BlueprintLoadError, Call, MockConfigEntry, Trace, sets_state
 
-__all__ = ["BlueprintEnv", "BlueprintLoadError", "Call", "sets_state"]
+__all__ = ["BlueprintEnv", "BlueprintLoadError", "Call", "MockConfigEntry", "Trace", "sets_state"]
