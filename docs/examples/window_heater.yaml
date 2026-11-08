@@ -1,0 +1,72 @@
+blueprint:
+  name: Window-aware heater (documentation example)
+  description: >
+    Switches a heater on when the room is colder than a limit, and off otherwise. A heater is never wanted
+    while the window is open. Used by the documentation to show render(), last_trace() and config entries.
+  domain: automation
+  input:
+    room_temperature:
+      name: Room temperature sensor
+      selector:
+        entity:
+          domain: sensor
+    window:
+      name: Window contact
+      selector:
+        entity:
+          domain: binary_sensor
+    heater:
+      name: Heater switch
+      selector:
+        entity:
+          domain: switch
+    on_below:
+      name: Switch on below (degrees)
+      default: 19
+      selector:
+        number:
+          min: 5
+          max: 30
+
+# An `!input` cannot be used inside a template, so the inputs are bound to variables first.
+variables:
+  temperature_entity: !input room_temperature
+  window_entity: !input window
+  heater_entity: !input heater
+  on_below: !input on_below
+
+triggers:
+  - trigger: state
+    entity_id:
+      - !input room_temperature
+      - !input window
+
+actions:
+  - alias: Read the room
+    variables:
+      window_open: "{{ is_state(window_entity, 'on') }}"
+      heater_on: "{{ is_state(heater_entity, 'on') }}"
+      temperature: "{{ states(temperature_entity) | float(20) }}"
+  - alias: Decide
+    variables:
+      # The branch for an open window must be written {{ false }}. A bare `false` would arrive as the text
+      # "false", which counts as true in the conditions below.
+      desired_on: "{% if window_open %}{{ false }}{% else %}{{ temperature < on_below }}{% endif %}"
+  - alias: Switch the heater
+    choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ desired_on and not heater_on }}"
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: !input heater
+      - conditions:
+          - condition: template
+            value_template: "{{ not desired_on and heater_on }}"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: !input heater
+
+mode: restart

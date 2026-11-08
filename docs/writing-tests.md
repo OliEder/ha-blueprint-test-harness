@@ -22,7 +22,7 @@ The fixture `blueprint_env` gives every test a fresh Home Assistant, an empty co
 ```python
 await blueprint_env.start(
     blueprint, inputs=None, *,
-    states=None, services=(), effects=None, components=(), when=None, alias="blueprint under test",
+    states=None, services=(), effects=None, components=(), config_entries=(), when=None, alias="blueprint under test",
 )
 ```
 
@@ -34,6 +34,7 @@ await blueprint_env.start(
 | `services` | The services to replace by recorders, as `"domain.service"` names: `["light.turn_on", "light.turn_off"]`. A service the blueprint calls that is **not** listed is not recorded: Home Assistant logs `Service not found ... Action light.turn_off not found` and the test does **not** fail by itself. List every service your blueprint can call. |
 | `effects` | Optional: what a recorded service does besides recording. `{"light.turn_on": sets_state("on")}` puts the targeted lights into the state `on`, so a later condition sees a light that is on. You may write your own: a function `f(hass, call)`, plain or `async`. `call` is Home Assistant's own `ServiceCall`, not the harness' `Call`: read the data from `call.data` (it has no `entity_ids`; `call.data["entity_id"]` is a string or a list). |
 | `components` | Real Home Assistant components to set up first, for example `["sun"]` for sunrise and sunset conditions. |
+| `config_entries` | Optional: config entries to add before the blueprint starts, for template functions such as `config_entry_attr`. Create them with `MockConfigEntry(domain=..., title=...)`, exported by the harness (from whichever test package is installed). |
 | `when` | A timezone-aware `datetime` to move the clock to before anything runs, for example `dt.datetime(2026, 6, 21, 20, 0, tzinfo=dt.UTC)`. |
 | `alias` | The automation's name. Rarely needed. |
 
@@ -57,6 +58,8 @@ If the blueprint does not turn into a working automation (a missing required inp
 | `call.name` | `"light.turn_on"`. |
 | `call.data` | The call's data as a dict, for example `{"entity_id": ["light.hall"], "brightness_pct": 50}`. |
 | `call.entity_ids` | The targeted entities as a set, whether the blueprint passed a string or a list. |
+| `render(template, variables=None)` | Evaluates a template string against the simulated states and returns the value with its real type (`True`, `8`, a list), not text. The check you would do by hand in an instance's template tool. |
+| `last_trace()` | What the last run of the automation did, as a `Trace`: `.variables` (every variable it evaluated, with its real value), `.path` (the steps it went through, for example `action/2/choose/0/sequence/0` for the first `choose` branch) and `.error`. Raises `LookupError` if the automation has not run yet. |
 | `hass` | The Home Assistant instance, for anything the API does not cover (for example `hass.states.get(...)`). Internals can change between Home Assistant versions. |
 
 ## Patterns
@@ -150,6 +153,19 @@ assert blueprint_env.calls[0].entity_ids == {"light.hall"}         # and aimed a
 ```
 
 Check the **target** as well as the name. A call without a target switches off nothing and still has the right name; the [mutation tool](mutation-testing.md) finds tests that forget this.
+
+### Look at what a run decided
+
+A value that never reaches a service call (a computed flag, a total) cannot be asserted from the calls. Read it from the trace instead. The runnable example is [`examples/test_window_heater.py`](examples/test_window_heater.py).
+
+```python
+await blueprint_env.set_state("sensor.room", "14")
+trace = blueprint_env.last_trace()
+assert trace.variables["desired_on"] is True          # a real boolean, not the text "True"
+assert "action/2/choose/0/sequence/0" in trace.path   # the first branch of the third action ran
+```
+
+This catches a mistake that end-to-end tests miss: a template branch written as a bare `false` arrives as the **text** `"false"`, which counts as true in a later condition (`{{ desired_on and not heater_on }}`). Write `{{ false }}`. `render()` evaluates a template without running the blueprint: `blueprint_env.render("{{ states('sensor.room') | float > 15 }}")`.
 
 ### A blueprint that must not load
 
