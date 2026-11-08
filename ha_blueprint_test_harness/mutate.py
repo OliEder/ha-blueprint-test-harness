@@ -84,8 +84,20 @@ class _Dumper(yaml.SafeDumper):
 _Dumper.add_representer(Tagged, lambda dumper, tagged: dumper.represent_scalar(f"!{tagged.tag}", tagged.value))
 
 
-# Reads blueprint text into Python lists, dicts and Tagged objects.
+# The largest file the tool reads, and no YAML aliases: an alias (*x) is written out in full when a mutant is dumped, so a
+# few nested aliases make the dump and the search for mutants grow without limit (a 260-byte file ran for more than two
+# minutes before the first test). Write the values out instead of using anchors.
+_MAX_BYTES = 1_000_000
+
+
+# Reads blueprint text into Python lists, dicts and Tagged objects. Raises ValueError for input that is too large or that
+# uses aliases.
 def load(text: str) -> Any:
+    if len(text.encode("utf-8")) > _MAX_BYTES:
+        raise ValueError(f"the file is too large for the mutation tool (more than {_MAX_BYTES} bytes)")
+    for event in yaml.parse(text, Loader=_Loader):
+        if isinstance(event, yaml.AliasEvent):
+            raise ValueError("the file uses a YAML alias (*name); the mutation tool does not support aliases, write the values out")
     return yaml.load(text, Loader=_Loader)
 
 
@@ -326,6 +338,12 @@ def embed(document: Any, index: int | None, entry: Any) -> Any:
 #   survived = all tests passed although the blueprint was broken (a gap, or a change with no effect)
 #   invalid  = the blueprint no longer loads at all; says nothing about the tests, so it is not counted
 #   error    = pytest itself broke (bad usage, no tests collected, ...)
+# pytest's own lines that name the exception that failed a test ("E   ...BlueprintLoadError: ..." in the traceback, or
+# "FAILED test - ...BlueprintLoadError: ..." in the summary). Text that a test prints, or an assertion message that only
+# contains the word, does not match, so a test cannot make mutants "invalid" and drop them from the score.
+_LOAD_ERROR = re.compile(r"^(?:E\s+|FAILED \S+ - )(?:[\w.]+\.)?BlueprintLoadError\b", re.MULTILINE)
+
+
 def classify(returncode: int, output: str, timed_out: bool) -> str:
     """killed / survived / invalid (blueprint no longer loads) / error (the test run itself broke)."""
     if timed_out:
@@ -333,8 +351,20 @@ def classify(returncode: int, output: str, timed_out: bool) -> str:
     if returncode == 0:
         return "survived"
     if returncode == 1:
-        return "invalid" if "BlueprintLoadError" in output else "killed"
+        return "invalid" if _LOAD_ERROR.search(output) else "killed"
     return "error"
+
+
+# Writes a new file and never writes through a symbolic link or over a file that exists (O_EXCL fails on both). The
+# files are private to the user (0600).
+def _write_new(path: pathlib.Path, text: str) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags, 0o600), "w", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+# Files of an earlier run in --workdir (or a link placed there) must not be overwritten or followed.
+_OWN_FILES = re.compile(r"control\.yaml|M\d{3,}\.yaml")
 
 
 # The verdict for one mutant.
@@ -381,7 +411,10 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
     if jobs < 1:
         raise SystemExit(f"--jobs must be at least 1 (got {jobs}).")
     blueprint = blueprint.resolve()
-    document = load(blueprint.read_text(encoding="utf-8"))
+    try:
+        document = load(blueprint.read_text(encoding="utf-8"))
+    except ValueError as error:
+        raise SystemExit(f"{blueprint.name}: {error}") from error
     # A blueprint or one automation is mutated as it is; from a list (automations.yaml) only the picked entry.
     entry, index = select_automation(document, pick)
     mutants = find_mutants(entry)
@@ -396,12 +429,16 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
     with tempfile.TemporaryDirectory() as scratch:
         folder = workdir or pathlib.Path(scratch)
         folder.mkdir(parents=True, exist_ok=True)
+        leftovers = sorted(item.name for item in folder.iterdir() if _OWN_FILES.fullmatch(item.name))
+        if leftovers:
+            raise SystemExit(f"The workdir {folder} already holds {', '.join(leftovers[:3])}; use an empty folder, because the tool "
+                             "writes control.yaml and M001.yaml, ... there and must not overwrite or follow anything.")
         # HA_BLUEPRINT_TEST_HARNESS_ORIGINAL names the file to replace; HA_BLUEPRINT_TEST_HARNESS_MUTANT (set per run) names its replacement.
         env = {**base_env, "HA_BLUEPRINT_TEST_HARNESS_ORIGINAL": str(blueprint)}
 
         # Check 2: the tests pass on the round-tripped but otherwise unchanged copy.
         control = folder / "control.yaml"
-        control.write_text(dump(document), encoding="utf-8")
+        _write_new(control, dump(document))
         code, output, timed_out = _run(command, {**env, "HA_BLUEPRINT_TEST_HARNESS_MUTANT": str(control)}, timeout)
         if code != 0 or timed_out:
             raise SystemExit("The tests fail on the unmodified blueprint after a YAML round trip, so mutants "
@@ -414,7 +451,7 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
         # each other (each run is its own process with its own file), so several can run at the same time.
         def judge(mutant: Mutant) -> Result:
             path = folder / f"{mutant.id}.yaml"
-            path.write_text(dump(embed(document, index, mutant.mutated(entry))), encoding="utf-8")
+            _write_new(path, dump(embed(document, index, mutant.mutated(entry))))
             code, output, timed_out = _run(command, {**env, "HA_BLUEPRINT_TEST_HARNESS_MUTANT": str(path)}, timeout)
             outcome = classify(code, output, timed_out)
             with log_lock:

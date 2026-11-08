@@ -113,3 +113,5 @@ A killed mutant only shows that *some* test failed, not that the test is a good 
 Add the command to your workflow with `--fail-under` (see [Configuring your project](configuring-your-project.md#run-it-in-github-actions)). Start with the score you have and raise it as you close gaps; 100 is a good goal and a demanding start.
 
 The tool passes your environment on to the test command, minus its own `HA_BLUEPRINT_TEST_HARNESS_*` variables. Do not run it with secrets in the environment on a blueprint or tests you do not trust ([`SECURITY.md`](../SECURITY.md)).
+
+Without a command after `--` the tool runs `pytest` in the current directory, which loads that directory's `conftest.py`; run it only on files you have read. Give `--workdir` an empty folder: the tool stops if it finds `control.yaml` or `M001.yaml`, ... from an earlier run there, and it never writes through a link. The tool refuses a file with YAML aliases (`*name`, they are written out in full for every mutant and can make a run last minutes) and a file above 1 MB; write the values out instead.

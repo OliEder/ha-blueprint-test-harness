@@ -7,6 +7,12 @@ name: CI
 # and fail if the tests stop noticing; the survivors, if any, are listed in the job summary. They use the package from
 # core. The job "mutation" only collects their result under the name that the branch rules require.
 #
+# Everything that is installed or run comes from a fixed version: the actions are pinned to commit ids (the comment
+# names the version; Dependabot proposes updates), and the packages come from the .lock files with hashes
+# (`pip install --require-hashes`). To change a version, edit the .txt file, regenerate the lock (the command is in its
+# first lines) and commit both. No checkout keeps the token (persist-credentials: false): test code of a pull request
+# must not be able to read it.
+#
 # The jobs run side by side (the slow mutation job does not wait for the tests). Nothing is skipped: both always
 # run, so a green check always means that the work was done. If the tests fail on the unchanged blueprint, the
 # mutation tool stops by itself and says so (see docs/mutation-testing.md).
@@ -24,13 +30,15 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: requirements-dev.lock
 
       - name: Install dependencies
         run: |
@@ -43,13 +51,15 @@ jobs:
   tests-custom-component:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-dev-custom-component.txt
+          cache-dependency-path: requirements-dev-custom-component.lock
 
       - name: Install dependencies
         run: |
@@ -79,16 +89,18 @@ jobs:
           - {name: arrival_reminder, target: tests/automations/arrival_reminder.yaml, test: tests/test_arrival_reminder.py, floor: 97}
           - {name: button_scenes, target: tests/automations/button_scenes.yaml, test: tests/test_button_scenes.py, floor: 93}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: requirements-dev.lock
 
       - name: Install dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: python -m pip install --require-hashes -r requirements-dev.lock
 
       - name: Mutation run
         env:

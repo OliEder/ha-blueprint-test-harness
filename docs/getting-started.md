@@ -22,8 +22,8 @@ Then install the harness. Pick one:
 
 | Source | Command | Notes |
 | --- | --- | --- |
-| A release wheel | `uv pip install --python .venv/bin/python ha_blueprint_test_harness-<version>-py3-none-any.whl` | Download it from the [Releases page](https://github.com/OliEder/ha-blueprint-test-harness/releases). Preferred. |
-| The main branch | `uv pip install --python .venv/bin/python "git+https://github.com/OliEder/ha-blueprint-test-harness"` | Installs the development version of `main`. Checked on 2026-11-07. |
+| A release wheel | `uv pip install --python .venv/bin/python ha_blueprint_test_harness-<version>-py3-none-any.whl` | Download it from the [Releases page](https://github.com/OliEder/ha-blueprint-test-harness/releases). Preferred. From 0.4.0 on check it against the release's `SHA256SUMS` (`sha256sum --check --ignore-missing SHA256SUMS`). |
+| The main branch | `uv pip install --python .venv/bin/python "git+https://github.com/OliEder/ha-blueprint-test-harness"` | Installs the development version of `main`. Checked on 2026-11-07. Add `@v0.4.0` (a tag) or a commit id after the URL to install a fixed state. |
 
 It is **not on PyPI yet.**
 

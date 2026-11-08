@@ -18,9 +18,10 @@ Read the first column's files, then the rest only if needed.
 | Write tests for a blueprint | `docs/writing-tests.md`, `docs/examples/` (the models) | `env.py` `start()` | `test_mutate.py`, `mutate.py` |
 | Judge mutation survivors | `docs/mutation-testing.md`, `mutate.py` header | `memory/equivalent-mutants.md`, `memory/mutation-outcomes-killed-invalid.md` | `env.py` |
 | Add or change a mutation operator | `mutate.py` (`_walk`, `_dict_sites`, `_template_variants`), `tests/test_mutate.py` | `docs/mutation-testing.md` (the operator table) | `env.py` |
-| CI | `.github/workflows/ci.yaml` | | |
+| CI, locked versions | `.github/workflows/ci.yaml`, `requirements-*.txt` (what is wanted) | `.github/dependabot.yml`, `RELEASING.md` ("Locked versions") | the `requirements-*.lock` files: thousands of hash lines, regenerate them instead of reading |
 | Install, set up or use the tool; fix an error message | `docs/index.md`, then the page it names | `README.md` | `mutate.py`, `env.py` |
 | Version, release or changelog | `RELEASING.md`, `CHANGELOG.md` | `pyproject.toml`, `.github/workflows/release.yaml` | |
+| Security question or audit finding | `SECURITY.md`, `tests/test_security.py` | `roadmap/log/2026-11.md` (the audit entry) | |
 | Work on a milestone | `ROADMAP.md` (the table), then the milestone's file in `roadmap/` | the `memory/` entries it names; `roadmap/log/` for the recent past | the other milestone files |
 | Current numbers, open items, commands | the matching file in `status/` | | the other `status/` files |
 | Find a fact or a past decision | `MEMORY.md` (the index; open only the entries that match) | the entries in `memory/` | the rest of `memory/` |
