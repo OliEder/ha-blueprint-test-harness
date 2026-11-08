@@ -1,5 +1,7 @@
 """start_automation(): an automation written directly (no blueprint header) runs in the harness."""
 
+import pathlib
+
 import pytest
 import yaml
 
@@ -72,3 +74,46 @@ async def test_the_trace_works_for_a_direct_automation(blueprint_env):
     await blueprint_env.start_automation(LAMP_ON, states=STATES, services=["light.turn_on"])
     await blueprint_env.set_state("binary_sensor.door", "on")
     assert "action/0" in blueprint_env.last_trace().path
+
+
+FORECAST = {
+    "triggers": [{"trigger": "state", "entity_id": "binary_sensor.door", "to": "on"}],
+    "actions": [
+        {"action": "weather.get_forecasts", "data": {"type": "daily"}, "target": {"entity_id": "weather.home"}, "response_variable": "fc"},
+        {"action": "light.turn_on", "target": {"entity_id": "light.hall"}, "data": {"brightness": "{{ fc['weather.home']['forecast'][0]['temperature'] | int }}"}},
+    ],
+}
+
+
+async def test_a_service_with_a_response_feeds_the_next_step(blueprint_env):
+    # `responses` registers the service so that response_variable works; the next action uses the answer.
+    answer = {"weather.home": {"forecast": [{"temperature": 7}]}}
+    await blueprint_env.start_automation(FORECAST, states=STATES, services=["light.turn_on"], responses={"weather.get_forecasts": answer})
+    await blueprint_env.set_state("binary_sensor.door", "on")
+    assert blueprint_env.calls_to("light.turn_on")[0].data["brightness"] == 7
+    assert blueprint_env.calls_to("weather.get_forecasts")[0].data["type"] == "daily"
+
+
+async def test_a_response_can_depend_on_the_call(blueprint_env):
+    # A function gets the service call and returns the answer, so one service can answer differently per request.
+    def answer(call):
+        return {"weather.home": {"forecast": [{"temperature": 3 if call.data["type"] == "daily" else 9}]}}
+
+    await blueprint_env.start_automation(FORECAST, states=STATES, services=["light.turn_on"], responses={"weather.get_forecasts": answer})
+    await blueprint_env.set_state("binary_sensor.door", "on")
+    assert blueprint_env.calls_to("light.turn_on")[0].data["brightness"] == 3
+
+
+async def test_start_takes_responses_too(blueprint_env):
+    # The same option exists for blueprints; here only the registration is checked.
+    example = pathlib.Path(__file__).parents[1] / "docs" / "examples" / "window_heater.yaml"
+    inputs = {"room_temperature": "sensor.room", "window": "binary_sensor.window", "heater": "switch.heater"}
+    await blueprint_env.start(example, inputs, states={"sensor.room": "15", "binary_sensor.window": "off", "switch.heater": "off"},
+                              services=["switch.turn_on"], responses={"weather.get_forecasts": {}})
+    assert "get_forecasts" in blueprint_env.hass.services.async_services()["weather"]
+
+
+async def test_a_service_that_is_both_plain_and_with_a_response_is_an_error(blueprint_env):
+    # Asking for both is a mistake in the test; say so instead of picking one.
+    with pytest.raises(ValueError, match="weather.get_forecasts"):
+        await blueprint_env.start_automation(FORECAST, services=["weather.get_forecasts"], responses={"weather.get_forecasts": {}})
