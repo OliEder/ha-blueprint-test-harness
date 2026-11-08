@@ -1,8 +1,8 @@
 # ha-blueprint-test-harness roadmap
 
-**Stage: release 0.3.0 is out** · next: a broader set of reference blueprints, then a compatibility layer so that new Home Assistant versions touch one place
+**Stage: release 0.3.0 is out** · next: a compatibility layer so that new Home Assistant versions touch one place (M3), then release 0.4.0
 
-> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** release 0.3.0 published; M6 (direct automations) done, unreleased
+> **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** M2 (reference set) and M6 (direct automations) done, unreleased; release 0.4.0 waits
 
 ## Direction
 
@@ -42,7 +42,7 @@ The state of a milestone lives only in this table: `open`, `active`, `done`, `id
 | --- | --- | --- | --- |
 | M0 | Prototype: environment, mutation tool, CI file | done | — |
 | M1 | Repository, first green CI run on Linux, first release (0.1.0) | done | — |
-| M2 | **Broader reference set.** Original fixture blueprints for event, numeric-state and zone triggers, `choose` with `default`, `repeat` and `wait_template`, each with tests and a mutation score | open | [M2](roadmap/M2-broaden-reference-set.md) |
+| M2 | **Broader reference set.** Six reference automations under `tests/automations/`, derived from real ones, each with tests and a mutation floor in CI (8 runs with the two blueprints, side by side); rules in `memory/reference-set-rules.md` | done | — |
 | M3 | **Compatibility layer.** Every Home Assistant internal the harness uses sits behind one module, with canary tests that name what changed in a new version | open | [M3](roadmap/M3-compatibility-layer.md) |
 | M4 | **Several Home Assistant generations.** A CI matrix over the blueprint's `min_version`, recent monthly releases and the current one; version markers; a weekly pin proposal | open | [M4](roadmap/M4-several-ha-generations.md) |
 | M11 | **Templates and traces.** Render a template against the simulated states, read the trace of the last run (evaluated variables, the path through `choose`) and provide config entries, so that the template checks done by hand in an instance can be done in tests. Found on a real blueprint | done | — |

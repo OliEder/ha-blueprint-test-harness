@@ -12,6 +12,7 @@ Keep it current. Fix or delete an entry as soon as it is wrong, and check a clai
 
 - [What killed, survived, invalid and error mean](memory/mutation-outcomes-killed-invalid.md): read before changing how a run is judged or when the invalid count surprises you.
 - [Equivalent mutants seen so far](memory/equivalent-mutants.md): read when a survivor might not be a test gap; add new ones here.
+- [How the reference automations are made and judged](memory/reference-set-rules.md): read before adding a fixture or changing a mutation floor in CI.
 - [YAML round-trip quirks](memory/yaml-round-trip-quirks.md): read when the control run fails or the written YAML looks different from the original.
 
 ## Writing tests for a blueprint
