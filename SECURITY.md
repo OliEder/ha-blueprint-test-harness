@@ -6,7 +6,7 @@ A development and test tool. Running it executes things: the tests you give it, 
 
 ## Supported versions
 
-The latest release (0.4.0) and `main`. Versions up to 0.3.0 have the issue described under "Fixed security issues"; update to 0.4.0. A fix is published as the next patch version (see [`RELEASING.md`](RELEASING.md)).
+The latest release (0.4.1) and `main`. Versions up to 0.3.0 have the issue described under "Fixed security issues"; update to 0.4.0. A fix is published as the next patch version (see [`RELEASING.md`](RELEASING.md)).
 
 ## Reporting a vulnerability
 
