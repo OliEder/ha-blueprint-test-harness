@@ -415,9 +415,12 @@ def _progress(line: str) -> None:
 # unchanged copy that was read and written back by this tool (otherwise the tool itself would be the cause
 # of failures). Then each mutant is written to a file, the tests run against it, and the outcome is judged.
 def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float = 120, pick: str | None = None, jobs: int = 1,
-                 workdir: pathlib.Path | None = None, log: Callable[[str], None] = _progress) -> Report:
+                 shard: tuple[int, int] = (1, 1), workdir: pathlib.Path | None = None, log: Callable[[str], None] = _progress) -> Report:
     if jobs < 1:
         raise SystemExit(f"--jobs must be at least 1 (got {jobs}).")
+    part, parts = shard
+    if not 1 <= part <= parts:
+        raise SystemExit(f"--shard must be I/N with 1 <= I <= N (got {part}/{parts}).")
     blueprint = blueprint.resolve()
     try:
         document = load(blueprint.read_text(encoding="utf-8"))
@@ -425,7 +428,8 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
         raise SystemExit(f"{blueprint.name}: {error}") from error
     # A blueprint or one automation is mutated as it is; from a list (automations.yaml) only the picked entry.
     entry, index = select_automation(document, pick)
-    mutants = find_mutants(entry)
+    # A shard takes every N-th mutant, so the N runs together cover each mutant exactly once and share the slow ones evenly.
+    mutants = find_mutants(entry)[part - 1::parts]
     # Never inherit mutation settings from an outer run.
     base_env = {key: value for key, value in os.environ.items() if not key.startswith("HA_BLUEPRINT_TEST_HARNESS_")}
 
@@ -452,7 +456,8 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
             raise SystemExit("The tests fail on the unmodified blueprint after a YAML round trip, so mutants "
                              f"cannot be judged (exit {code}).\n{output[-2000:]}")
 
-        log(f"{len(mutants)} mutants of {blueprint.name}" + (f" ({jobs} at a time)" if jobs > 1 else ""))
+        log(f"{len(mutants)} mutants of {blueprint.name}" + (f" (shard {part}/{parts})" if parts > 1 else "")
+            + (f" ({jobs} at a time)" if jobs > 1 else ""))
         log_lock = threading.Lock()
 
         # Tests one mutant: writes its file, runs the tests against it and judges the outcome. Mutants do not depend on
@@ -470,6 +475,14 @@ def run_mutation(blueprint: pathlib.Path, command: list[str], *, timeout: float 
         with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
             results = list(pool.map(judge, mutants))
     return Report(results)
+
+
+# Reads "I/N" (for example "2/4") from the command line: the part to run and the number of parts.
+def parse_shard(text: str) -> tuple[int, int]:
+    match = re.fullmatch(r"(\d+)/(\d+)", text)
+    if not match or not 1 <= int(match[1]) <= int(match[2]):
+        raise argparse.ArgumentTypeError(f"expected I/N with 1 <= I <= N, for example 2/4 (got {text!r})")
+    return int(match[1]), int(match[2])
 
 
 # Splits the command line at the first "--": everything before is for this tool (options, blueprint path),
@@ -491,13 +504,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pick", help="for a file with several automations: the id or alias of the one to mutate")
     parser.add_argument("--timeout", type=float, default=120, help="seconds per test run (default 120)")
     parser.add_argument("--jobs", type=int, default=1, help="run this many mutants at the same time (default 1); the tests must not share files")
+    parser.add_argument("--shard", type=parse_shard, default=(1, 1), metavar="I/N",
+                        help="run only part I of N (every N-th mutant); start N runs, I = 1..N, to cover all mutants, for example on N CI machines")
     parser.add_argument("--workdir", type=pathlib.Path, help="keep the mutant files here")
     parser.add_argument("--fail-under", type=float, default=0.0, help="exit 1 if the score is lower (0 to 100)")
     own, command = split_command(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(own)
     command = command or [sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
 
-    report = run_mutation(args.blueprint, command, timeout=args.timeout, pick=args.pick, jobs=args.jobs, workdir=args.workdir)
+    report = run_mutation(args.blueprint, command, timeout=args.timeout, pick=args.pick, jobs=args.jobs, shard=args.shard, workdir=args.workdir)
     survivors = [result for result in report.results if result.outcome == "survived"]
     print()
     print(f"killed {report.count('killed')}, survived {report.count('survived')}, "
