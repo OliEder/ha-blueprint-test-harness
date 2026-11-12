@@ -4,6 +4,10 @@ All notable changes to this project are written here, newest first. The format f
 
 ## [Unreleased]
 
+### Added
+
+- `--shard I/N` for the mutation tool: runs only every `N`-th mutant, so a long run can be split over `N` CI jobs. Together the `N` parts judge each mutant exactly once, with the ids of a whole run.
+
 ## [0.4.1] - 2026-11-09
 
 A PATCH version: it fixes a regression of 0.4.0 and adds no public name.

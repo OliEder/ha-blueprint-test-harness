@@ -18,6 +18,7 @@ Passing tests tell you the blueprint does what the tests check. They do not tell
 | --- | --- |
 | `--timeout S` | Seconds per test run (default 120). A run that hangs counts as killed. |
 | `--jobs N` | Run `N` mutants at the same time (default 1). Each run is its own process with its own file, so the result is the same; the tests must not share files or ports. Measured on a Mac with 8 cores and 39 mutants: 110 s with 1, 52 s with 4, 42 s with 8, because every run loads Home Assistant again. A run that waits for a timeout counts against its `--timeout` while the machine is busy, so do not set `N` much higher than the number of cores. |
+| `--shard I/N` | Run only part `I` of `N` (every `N`-th mutant; `2/4` is the 2nd, 6th, 10th, ...). Start `N` runs with `I` = 1 to `N` to cover every mutant exactly once, for example one CI job each. The ids (`M001`, ...) are the same as in a whole run. `--fail-under` and the score then apply to the part only: give the parts `--fail-under 0` and judge the sum of their "killed" and "survived" lines yourself. |
 | `--fail-under PCT` | Exit with status 1 if the score is below `PCT` (0 to 100). For CI. |
 | `--workdir DIR` | Write the broken copies to `DIR` and keep them (default: a temporary folder that is removed). |
 
